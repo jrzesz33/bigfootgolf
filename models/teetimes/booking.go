@@ -22,15 +22,16 @@ type AppConfigFile struct {
 
 type SettingType int
 
+// SettingType constants define different tee time settings
 const (
-	Weekday_Morning SettingType = iota
-	Weekday_Midday
-	Weekday_Afternoon
-	Weekend_Morning
-	Weekend_Midday
-	Weekend_Afternoon
+	WeekdayMorning SettingType = iota
+	WeekdayMidday
+	WeekdayAfternoon
+	WeekendMorning
+	WeekendMidday
+	WeekendAfternoon
 	Holiday
-	Daily_Deal
+	DailyDeal
 )
 
 type DetailedBlockSettings struct {

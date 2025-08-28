@@ -66,9 +66,8 @@ func LoadLocalConfig() (*AuthConfig, error) {
 		}
 
 		return &config, err
-	} else {
-		return nil, err
 	}
+	return nil, err
 }
 
 func InitAuth() AuthServer {
@@ -105,12 +104,11 @@ func InitAuth() AuthServer {
 		}
 		_, _ = NewAuthConfig(server)
 		return server
-	} else {
-		server, err := config.GetServer()
-		if err != nil {
-			log.Fatal("error loading auth config")
-		}
-		return server
 	}
+	server, err := config.GetServer()
+	if err != nil {
+		log.Fatal("error loading auth config")
+	}
+	return server
 
 }

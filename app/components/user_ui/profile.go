@@ -112,10 +112,9 @@ func (h *ProfileUI) profileClick(ctx app.Context, opts app.Event) {
 			h.RegisterUser(h.User)
 		}
 		return
-	} else {
-		if h.SaveProfile != nil {
-			h.SaveProfile(h.User)
-		}
+	}
+	if h.SaveProfile != nil {
+		h.SaveProfile(h.User)
 	}
 }
 

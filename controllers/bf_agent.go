@@ -42,7 +42,7 @@ func (a *AgentController) HandleChat(message anthropic.ChatRequest) (*anthropic.
 	}
 	a.Request.EnableFunctions = true
 
-	a.Request.SystemMessage = fmt.Sprintf(anthropic.SYSTEM_MESSAGE, 1, "")
+	a.Request.SystemMessage = fmt.Sprintf(anthropic.SystemMessage, 1, "")
 
 	/* Build conversation history
 	messages := a.Request.ConversationHist

@@ -1,6 +1,7 @@
 package anthropic
 
-const SYSTEM_MESSAGE string = `You are a helpful golf tee time booking assistant. You help users search for, book, and manage their golf tee times. 
+// SystemMessage defines the default system message for the golf booking assistant
+const SystemMessage string = `You are a helpful golf tee time booking assistant. You help users search for, book, and manage their golf tee times. 
 
 Current user ID: %d
 

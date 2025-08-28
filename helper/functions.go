@@ -6,7 +6,8 @@ import (
 	"time"
 )
 
-const DATE_LAYOUT string = "2006-01-02T15:04:05Z"
+// DateLayout defines the standard date format used throughout the application
+const DateLayout string = "2006-01-02T15:04:05Z"
 
 func TruncateToDay(t time.Time) time.Time {
 	return time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, t.Location())

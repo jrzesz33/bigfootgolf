@@ -12,7 +12,8 @@ import (
 	"time"
 )
 
-const REFRESH_INTERVAL int64 = 5
+// RefreshInterval defines how often tokens are refreshed in minutes
+const RefreshInterval int64 = 5
 
 // Token storage
 type TokenBot struct {
@@ -34,7 +35,7 @@ type TokenEvent struct {
 func NewTokenBot(_tokens *auth.AuthResponse) *TokenBot {
 	actx, cancel := context.WithCancel(context.Background())
 	tm := &TokenBot{
-		refreshInterval: time.Duration(REFRESH_INTERVAL) * time.Minute, // Check every 5 minutes
+		refreshInterval: time.Duration(RefreshInterval) * time.Minute, // Check every 5 minutes
 		ctx:             actx,
 		cancel:          cancel,
 		eventChan:       make(chan TokenEvent, 10),

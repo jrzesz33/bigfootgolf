@@ -15,7 +15,7 @@ type BaseCo struct {
 }
 
 func (b *BaseCo) GetFromState(ctx app.Context) {
-	ctx.GetState(STATE_KEY, &b.authResp)
+	ctx.GetState(StateKey, &b.authResp)
 	if b.authResp.Token == "" {
 		fmt.Println("Base Has No Local Storate")
 		return
@@ -27,8 +27,8 @@ func (b *BaseCo) GetFromState(ctx app.Context) {
 
 }
 func (b *BaseCo) ObserveFromState(ctx app.Context) {
-	//fmt.Println("getting state ", STATE_KEY)
-	ctx.ObserveState(STATE_KEY, &b.authResp).
+	//fmt.Println("getting state ", StateKey)
+	ctx.ObserveState(StateKey, &b.authResp).
 		OnChange(func() {
 			fmt.Println("updating BASE STATE for User ", b.authResp.User.FirstName, b.authResp.User.LastName)
 			b.User = b.authResp.User

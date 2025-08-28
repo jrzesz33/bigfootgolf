@@ -24,7 +24,7 @@ type MyAccount struct {
 
 func (h *MyAccount) OnMount(ctx app.Context) {
 	h.disabledMode = true
-	ctx.GetState(components.STATE_KEY, &h.authResp)
+	ctx.GetState(components.StateKey, &h.authResp)
 	if h.authResp.Token == "" {
 		fmt.Println("No User Found")
 		ctx.Navigate("/login")
@@ -68,44 +68,44 @@ func (h *MyAccount) Render() app.UI {
 		)
 }
 
-func (a *MyAccount) onLogout(ctx app.Context, e app.Event) {
+func (h *MyAccount) onLogout(ctx app.Context, e app.Event) {
 
 	_state := state.GetAppState(nil)
 	_state.Logout()
 }
-func (a *MyAccount) onProfileEdit(ctx app.Context, e app.Event) {
+func (h *MyAccount) onProfileEdit(ctx app.Context, e app.Event) {
 	ctx.Dispatch(func(ctx app.Context) {
-		a.disabledMode = false
+		h.disabledMode = false
 	})
 }
 
-func (a *MyAccount) onPasswordReset(ctx app.Context, e app.Event) {
-	if !a.user.IsVerified {
+func (h *MyAccount) onPasswordReset(ctx app.Context, e app.Event) {
+	if !h.user.IsVerified {
 		ctx.Navigate("/verify")
 	} else {
 		ctx.Navigate("/changepw")
 	}
 
 }
-func (a *MyAccount) onSaveProfileClick(_user account.User) {
+func (h *MyAccount) onSaveProfileClick(_user account.User) {
 	_usr, err := updateUser(_user)
 	if _usr != nil && err.BError == nil {
 		appState := state.GetAppState(nil)
 		appState.UpdateUser(_user)
-		a.user = _user
-		//a.statusMsg = "Profile Updated"
+		h.user = _user
+		//h.statusMsg = "Profile Updated"
 	} else {
 		fmt.Println("Error Saving Profile", err)
-		a.statusMsg = err.FriendlyMsg()
+		h.statusMsg = err.FriendlyMsg()
 	}
 
-	a.disabledMode = true
-	a.Render()
+	h.disabledMode = true
+	h.Render()
 
 }
 
-func (a *MyAccount) onCancelClick() {
-	a.disabledMode = true
+func (h *MyAccount) onCancelClick() {
+	h.disabledMode = true
 }
 
 func updateUser(_user account.User) (*account.User, models.BError) {
@@ -117,7 +117,6 @@ func updateUser(_user account.User) (*account.User, models.BError) {
 		var _usr account.User
 		err.BError = json.Unmarshal(usr, &_usr)
 		return &_usr, err
-	} else {
-		return nil, err
 	}
+	return nil, err
 }

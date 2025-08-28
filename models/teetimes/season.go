@@ -58,32 +58,32 @@ func NewSeason(year int, name string, begin time.Time, end time.Time) Season {
 	_eveningStart := seas.FirstTeeTime.Add(seas.Gap * time.Duration(_eveningOverrideSlots))
 	//write the code to add price overrides
 	seas.DefaultSettings = append(seas.DefaultSettings, DetailedBlockSettings{
-		Type: int(Weekday_Morning), Name: "Weekday Morning", BeginOverride: seas.FirstTeeTime,
+		Type: int(WeekdayMorning), Name: "Weekday Morning", BeginOverride: seas.FirstTeeTime,
 		EndOverride: _morningEnd,
 		Price:       float32(_weekdayCost) - float32(_morningDiscount), IsAvail: true,
 	})
 	seas.DefaultSettings = append(seas.DefaultSettings, DetailedBlockSettings{
-		Type: int(Weekday_Midday), Name: "Weekday Midday", BeginOverride: _morningEnd.Add(time.Minute),
+		Type: int(WeekdayMidday), Name: "Weekday Midday", BeginOverride: _morningEnd.Add(time.Minute),
 		EndOverride: seas.FirstTeeTime.Add(seas.Gap * time.Duration(_morningOverrideslots)),
 		Price:       float32(_weekdayCost), IsAvail: true,
 	})
 	seas.DefaultSettings = append(seas.DefaultSettings, DetailedBlockSettings{
-		Type: int(Weekday_Midday), Name: "Weekday Afternoon", BeginOverride: _eveningStart,
+		Type: int(WeekdayAfternoon), Name: "Weekday Afternoon", BeginOverride: _eveningStart,
 		EndOverride: seas.LastTeeTime.Add(time.Minute),
 		Price:       float32(_weekdayCost) - float32(_afternoonDiscount), IsAvail: true,
 	})
 	seas.DefaultSettings = append(seas.DefaultSettings, DetailedBlockSettings{
-		Type: int(Weekend_Morning), Name: "Weekend Morning", BeginOverride: seas.FirstTeeTime,
+		Type: int(WeekendMorning), Name: "Weekend Morning", BeginOverride: seas.FirstTeeTime,
 		EndOverride: _morningEnd,
 		Price:       float32(_weekendCost) - float32(_morningDiscount), IsAvail: true,
 	})
 	seas.DefaultSettings = append(seas.DefaultSettings, DetailedBlockSettings{
-		Type: int(Weekend_Midday), Name: "Weekend Midday", BeginOverride: _morningEnd.Add(time.Minute),
+		Type: int(WeekendMidday), Name: "Weekend Midday", BeginOverride: _morningEnd.Add(time.Minute),
 		EndOverride: seas.FirstTeeTime.Add(seas.Gap * time.Duration(_morningOverrideslots)),
 		Price:       float32(_weekendCost), IsAvail: true,
 	})
 	seas.DefaultSettings = append(seas.DefaultSettings, DetailedBlockSettings{
-		Type: int(Weekday_Afternoon), Name: "Weekend Afternoon", BeginOverride: _eveningStart,
+		Type: int(WeekendAfternoon), Name: "Weekend Afternoon", BeginOverride: _eveningStart,
 		EndOverride: seas.LastTeeTime.Add(time.Minute),
 		Price:       float32(_weekendCost) - float32(_afternoonDiscount), IsAvail: true,
 	})
@@ -119,11 +119,11 @@ func (s *Season) Save() error {
 	s.ID = _strOut
 
 	for i := range s.DefaultSettings {
-		_dId, err := s.DefaultSettings[i].Save()
+		_dID, err := s.DefaultSettings[i].Save()
 		if err != nil {
 			return err
 		}
-		s.DefaultSettings[i].ID = _dId
+		s.DefaultSettings[i].ID = _dID
 		//add Relationship
 		err = db.Instance.SaveRelationship(db.Relation{NodeN: "Season", NodeX: "DetailedBlockSettings", NodeNID: s.ID, NodeXID: s.DefaultSettings[i].ID, Name: "HAS_SETTINGS"})
 		if err != nil {

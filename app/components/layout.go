@@ -8,7 +8,8 @@ import (
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
 )
 
-const STATE_KEY string = "birdstate"
+// StateKey is the key used to store application state
+const StateKey string = "birdstate"
 
 type Layout struct {
 	app.Compo
@@ -22,7 +23,7 @@ type Layout struct {
 func (aw *Layout) OnMount(ctx app.Context) {
 
 	var authResp auth.AuthResponse
-	ctx.GetState(STATE_KEY, &authResp)
+	ctx.GetState(StateKey, &authResp)
 	if authResp.Token == "" {
 		fmt.Println("No Local Storage")
 	}
@@ -82,35 +83,35 @@ func (aw *Layout) listenForAuthEvents(ctx app.Context) {
 
 	}
 }
-func (l *Layout) UpdateAuthState(ctx app.Context, event state.StateEvent) {
+func (aw *Layout) UpdateAuthState(ctx app.Context, event state.StateEvent) {
 	if _auth, ok := event.Data.(auth.AuthResponse); ok {
 		fmt.Println("Updating User to ", _auth.User.LastName)
-		l.userLevel = _auth.AuthLevel
-		ctx.SetState(STATE_KEY, _auth).Persist().Broadcast()
+		aw.userLevel = _auth.AuthLevel
+		ctx.SetState(StateKey, _auth).Persist().Broadcast()
 	} else {
 		fmt.Println("Error with Saving State")
 	}
 }
 
-func (l *Layout) RefrestAuthState(ctx app.Context, event state.StateEvent) {
+func (aw *Layout) RefrestAuthState(ctx app.Context, event state.StateEvent) {
 	if _auth, ok := event.Data.(auth.AuthResponse); ok {
-		l.userLevel = _auth.AuthLevel
+		aw.userLevel = _auth.AuthLevel
 		var authResp auth.AuthResponse
-		ctx.GetState(STATE_KEY, &authResp)
+		ctx.GetState(StateKey, &authResp)
 		_auth.User = authResp.User
-		ctx.SetState(STATE_KEY, _auth).Persist().Broadcast()
+		ctx.SetState(StateKey, _auth).Persist().Broadcast()
 	} else {
 		fmt.Println("Error with Saving State")
 	}
 }
 
-func (l *Layout) ClearAuthState(ctx app.Context) {
-	l.userLevel = auth.NoAuthLevel
+func (aw *Layout) ClearAuthState(ctx app.Context) {
+	aw.userLevel = auth.NoAuthLevel
 	var _auth auth.AuthResponse
-	ctx.SetState(STATE_KEY, _auth).Persist().Broadcast()
+	ctx.SetState(StateKey, _auth).Persist().Broadcast()
 }
 
-func (l *Layout) Render() app.UI {
+func (aw *Layout) Render() app.UI {
 
 	return app.Div().
 		Class("app-container").
@@ -125,9 +126,9 @@ func (l *Layout) Render() app.UI {
 							app.Div().
 								Class("page-header").
 								Body(
-									app.H2().Text(l.Header),
+									app.H2().Text(aw.Header),
 								),
-							l.Page,
+							aw.Page,
 							&Footer{},
 						),
 				),

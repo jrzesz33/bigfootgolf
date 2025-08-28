@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// CallAgentProxy sends a chat request to the agent proxy API endpoint
 func CallAgentProxy(request anthropic.ChatRequest) (*anthropic.ChatResponse, error) {
 	url := "./api/chat"
 	message, erz := json.Marshal(request)

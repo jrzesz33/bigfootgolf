@@ -17,7 +17,7 @@ type HamburgerNav struct {
 }
 
 func (h *HamburgerNav) OnMount(ctx app.Context) {
-	ctx.ObserveState(STATE_KEY, &h.authResp).
+	ctx.ObserveState(StateKey, &h.authResp).
 		OnChange(func() {
 			fmt.Println("auth state changed at", time.Now())
 			ctx.Dispatch(func(ctx app.Context) {

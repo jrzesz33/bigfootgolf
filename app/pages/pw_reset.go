@@ -11,7 +11,7 @@ import (
 
 type PwResetPage struct {
 	app.Compo
-	userId     string
+	userID     string
 	newPW      string
 	validatePW string
 	errorMsg   string
@@ -19,12 +19,12 @@ type PwResetPage struct {
 
 func (p *PwResetPage) OnMount(ctx app.Context) {
 	var ath auth.AuthResponse
-	ctx.GetState(components.STATE_KEY, &ath)
+	ctx.GetState(components.StateKey, &ath)
 	if ath.User.ID == "" {
 		ctx.Navigate("/login")
 	}
 	//as.Subscribe()
-	p.userId = ath.User.ID
+	p.userID = ath.User.ID
 	if !ath.User.IsVerified {
 		ctx.Navigate("/verify")
 	}
@@ -62,7 +62,7 @@ func (p *PwResetPage) resetClick(ctx app.Context, opts app.Event) {
 		return
 	}
 	_mapData := make(map[string]string)
-	_mapData["id"] = p.userId
+	_mapData["id"] = p.userID
 	_mapData["password"] = p.newPW
 
 	body, _ := json.Marshal(_mapData)

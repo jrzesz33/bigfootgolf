@@ -94,9 +94,8 @@ func (s *AvailTimes) Render() app.UI {
 									Text("Book").
 									OnClick(s.onBookSlot),
 							)
-					} else {
-						return nil
 					}
+					return nil
 				}),
 			),
 	)
