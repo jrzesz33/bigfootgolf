@@ -30,8 +30,8 @@ type ClaudeRequest struct {
 	Temperature   float64   `json:"temperature,omitempty"`
 	Messages      []Message `json:"messages"`
 	Tools         []Tool    `json:"tools,omitempty"`
-	ToolChoice    string    `json:"tool_choice,omitempty"`
-	SystemMessage string    `json:"system,omitempty"`
+	ToolChoice    interface{} `json:"tool_choice,omitempty"`
+	System        string    `json:"system,omitempty"`
 }
 
 // ClaudeResponse represents the response from Claude API
@@ -122,6 +122,9 @@ func (c *ClaudeClient) SendMessage(req ClaudeRequest) (*ClaudeResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
+	
+	// Debug: Print request JSON
+	fmt.Printf("Claude API Request: %s\n", string(jsonData))
 
 	httpReq, err := http.NewRequest("POST", c.BaseURL+"/messages", bytes.NewBuffer(jsonData))
 	if err != nil {
@@ -186,11 +189,11 @@ func ChatHandler(claudeClient *ClaudeClient) http.HandlerFunc {
 
 		// Prepare Claude request
 		claudeReq := ClaudeRequest{
-			Model:         "claude-3-5-sonnet-20241022", // Using latest available model
-			MaxTokens:     chatReq.MaxTokens,
-			Temperature:   chatReq.Temperature,
-			Messages:      messages,
-			SystemMessage: chatReq.SystemMessage,
+			Model:       "claude-3-5-sonnet-20241022", // Using latest available model
+			MaxTokens:   chatReq.MaxTokens,
+			Temperature: chatReq.Temperature,
+			Messages:    messages,
+			System:      chatReq.SystemMessage,
 		}
 
 		// Add tools if functions are enabled
@@ -199,7 +202,7 @@ func ChatHandler(claudeClient *ClaudeClient) http.HandlerFunc {
 
 		if chatReq.EnableFunctions {
 			claudeReq.Tools = GetAvailableTools()
-			claudeReq.ToolChoice = "auto"
+			claudeReq.ToolChoice = map[string]string{"type": "auto"}
 		}
 
 		// Send request to Claude
@@ -271,5 +274,5 @@ func (r *ChatRequest) AddNewMessage(message string) {
 		Content: message,
 	})
 	r.Message = message
-	r.SystemMessage = ""
+	// Don't override SystemMessage - let it be set by the controller
 }

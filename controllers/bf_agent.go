@@ -44,20 +44,28 @@ func (a *AgentController) HandleChat(message anthropic.ChatRequest) (*anthropic.
 
 	a.Request.SystemMessage = fmt.Sprintf(anthropic.SystemMessage, 1, "")
 
-	/* Build conversation history
-	messages := a.Request.ConversationHist
-	messages = append(messages, anthropic.Message{
-		Role:    "user",
-		Content: a.Request.Message,
-	})*/
+	// Ensure we have at least one message
+	if len(a.Request.ConversationHist) == 0 {
+		return nil, fmt.Errorf("conversation history is empty")
+	}
+
+	// Validate messages have required fields
+	for i, msg := range a.Request.ConversationHist {
+		if msg.Role == "" || msg.Content == "" {
+			return nil, fmt.Errorf("message %d missing role or content", i)
+		}
+		if msg.Role != "user" && msg.Role != "assistant" {
+			return nil, fmt.Errorf("message %d has invalid role: %s", i, msg.Role)
+		}
+	}
 
 	// Prepare Claude request
 	claudeReq := anthropic.ClaudeRequest{
-		Model:         "claude-opus-4-20250514", // Using latest available model
-		MaxTokens:     a.Request.MaxTokens,
-		Temperature:   a.Request.Temperature,
-		Messages:      a.Request.ConversationHist,
-		SystemMessage: a.Request.SystemMessage,
+		Model:       "claude-3-5-sonnet-20241022", // Using valid available model
+		MaxTokens:   a.Request.MaxTokens,
+		Temperature: a.Request.Temperature,
+		Messages:    a.Request.ConversationHist,
+		System:      a.Request.SystemMessage,
 	}
 
 	// Add tools if functions are enabled
@@ -66,14 +74,15 @@ func (a *AgentController) HandleChat(message anthropic.ChatRequest) (*anthropic.
 
 	if a.Request.EnableFunctions {
 		claudeReq.Tools = anthropic.GetAvailableTools()
-		claudeReq.ToolChoice = "auto"
+		claudeReq.ToolChoice = map[string]string{"type": "auto"}
 	}
 
 	// Send request to Claude
 	claudeResp, err := a.Client.SendMessage(claudeReq)
 	if err != nil {
-		fmt.Println("Error Processing Request")
-		//http.Error(w, fmt.Sprintf("Claude API error: %v", err), http.StatusInternalServerError)
+		fmt.Printf("Claude API Error: %v\n", err)
+		fmt.Printf("Request details - Model: %s, MaxTokens: %d, Messages: %d\n", 
+			claudeReq.Model, claudeReq.MaxTokens, len(claudeReq.Messages))
 		return nil, err
 	}
 

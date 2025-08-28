@@ -13,15 +13,15 @@ func CallAgentProxy(request anthropic.ChatRequest) (*anthropic.ChatResponse, err
 	if erz != nil {
 		return nil, erz
 	}
-	resp, err := SendPostWithPayload(url, string(message))
-	if err != nil {
+	resp, err := SendPostWithAuth(url, string(message))
+	if err.Code != 200 {
 		fmt.Println("Error with Proxy ", err)
-		return nil, err
+		return nil, err.BError
 	}
 	var chatResp anthropic.ChatResponse
 	erx := json.Unmarshal(resp, &chatResp)
 	if erx != nil {
-		return nil, err
+		return nil, erx
 	}
 	return &chatResp, nil
 }

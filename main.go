@@ -46,6 +46,7 @@ func main() {
 			"/web/app.css",
 			"/web/app_add.css",
 			"/web/nav.css",
+			"/web/agent.css",
 		},
 		Scripts: []string{
 			// Add any external scripts here
@@ -95,7 +96,7 @@ func main() {
 		controllers.SetupDevEnvironment()
 	}
 	// Start server
-	port := ":8000"
+	port := ":8001"
 	fmt.Printf("Server starting on port %s\n", port)
 
 	log.Fatal(http.ListenAndServe(port, r))

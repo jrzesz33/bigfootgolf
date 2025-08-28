@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(staticcheck:*)",
+      "Bash(go vet:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

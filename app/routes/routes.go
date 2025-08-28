@@ -23,6 +23,7 @@ func RegisterRoutes() {
 
 	// Authenticated routes
 	app.Route("/account", func() app.Composer { return &components.Layout{Page: &pages.MyAccount{}, PageLevel: auth.LoginLevel} })
+	app.Route("/agent", func() app.Composer { return &components.Layout{Page: &pages.Agent{}, PageLevel: auth.LoginLevel} })
 	app.Route("/verify", func() app.Composer { return &components.Layout{Page: &pages.VerifyUI{}, PageLevel: auth.LoginLevel} })
 	app.Route("/changepw", func() app.Composer { return &components.Layout{Page: &pages.PwResetPage{}, PageLevel: auth.LoginLevel} })
 
