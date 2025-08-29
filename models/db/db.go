@@ -20,9 +20,9 @@ type Database struct {
 
 // DynamicNode represents any node that can be saved to Neo4j
 type DynamicNode struct {
-	Label      string                 `json:"label"`
-	Properties map[string]interface{} `json:"properties"`
-	ID         string                 `json:"id,omitempty"`
+	Label      string         `json:"label"`
+	Properties map[string]any `json:"properties"`
+	ID         string         `json:"id,omitempty"`
 }
 
 var (

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"time"
+	_ "time/tzdata"
 
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
 )
@@ -20,7 +21,7 @@ type AvailTimes struct {
 }
 
 func (p *AvailTimes) OnMount(ctx app.Context) {
-	p.selectedDate = time.Now().Truncate(24 * time.Hour).Local()
+	p.selectedDate = time.Now().Local()
 	fmt.Println("Selected Date: ", p.selectedDate)
 	//call the web service
 	p.getTeeTimes()
@@ -52,30 +53,27 @@ func (s *AvailTimes) Render() app.UI {
 		return app.Div().Text("No Tee Times for " + s.selectedDate.Format("01/02/2006"))
 	}
 
-	var x int
-	for i := range s.timeSlots {
-		if s.timeSlots[i].Day.Equal(s.selectedDate) {
-			x = i
-			break
-		}
-	}
+	x := 0
+
 	sort.Slice(s.timeSlots[x].Times, func(i, j int) bool {
 		return s.timeSlots[x].Times[i].TeeTime.Before(s.timeSlots[x].Times[j].TeeTime)
 	})
+	fmt.Println("days and slots ", len(s.timeSlots), " - ", len(s.timeSlots[0].Times))
 	_obj := app.Div().Body(
 		app.Div().Class("fixedTeeHeader").Body(
 			app.If(s.selectedDate.After(time.Now().Truncate(24*time.Hour).Local().Add(time.Hour*24)), func() app.UI {
-				return app.Button().Text("&#x2192;").OnClick(s.onDateBack)
+				return app.Button().Text("Back").OnClick(s.onDateBack)
 			}),
 			app.H2().Text(s.selectedDate.Format("Jan 2 Mon")),
-			app.Button().Text("&#x2192;").OnClick(s.onDateChange)),
+			app.Button().Text("Next").OnClick(s.onDateChange)),
 		app.Div().
 			Class("time-slots").
 			Body(
 				app.Range(s.timeSlots[x].Times).Slice(func(i int) app.UI {
 					slot := s.timeSlots[x].Times[i]
 					_p := len(slot.Players)
-					if slot.TeeTime.After(time.Now()) && _p < 4 {
+
+					if _p < 4 {
 						_open := strconv.Itoa(4 - _p)
 						return app.Div().
 							Class("time-slot").
@@ -105,13 +103,17 @@ func (s *AvailTimes) Render() app.UI {
 func (p *AvailTimes) onBookSlot(ctx app.Context, opts app.Event) {
 }
 func (p *AvailTimes) onDateChange(ctx app.Context, opts app.Event) {
-	p.selectedDate = p.selectedDate.Add(time.Hour * 24)
+	p.selectedDate = time.Date(p.selectedDate.Year(), p.selectedDate.Month(), p.selectedDate.Day(), 0, 0, 0, 0, p.selectedDate.Location()).Add(time.Hour * 24)
+
 	ctx.Dispatch(func(ctx app.Context) {
 		p.getTeeTimes()
 	})
 }
 func (p *AvailTimes) onDateBack(ctx app.Context, opts app.Event) {
 	p.selectedDate = p.selectedDate.Add(time.Hour * -24)
+	if p.selectedDate.YearDay() == time.Now().YearDay() {
+		p.selectedDate = time.Now()
+	}
 	ctx.Dispatch(func(ctx app.Context) {
 		p.getTeeTimes()
 	})

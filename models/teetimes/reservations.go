@@ -13,6 +13,9 @@ type Reservation struct {
 	BookingUser *account.User  `json:"user,omitempty"`
 	Players     []account.User `json:"players"`
 	Slot        int64          `json:"slot"`
+	Price       float32        `json:"price"`
+	SettingType int            `json:"type"`
+	Group       string         `json:"group"`
 	CreatedAt   time.Time      `json:"createdAt"`
 	UpdatedAt   time.Time      `json:"updatedAt"`
 }
@@ -38,12 +41,15 @@ func (r *Reservation) Save() error {
 	return err
 }
 
-func NewReservation(_user *account.User, _players []account.User, _teeTime time.Time, _slot int64) Reservation {
+func NewReservation(_user *account.User, _players []account.User, _teeTime time.Time, _slot int64, _setting DetailedBlockSettings) Reservation {
 	var reserv Reservation
 	reserv.BookingUser = _user
 	reserv.CreatedAt = time.Now()
 	reserv.Players = _players
 	reserv.TeeTime = _teeTime
+	reserv.Price = _setting.Price
+	reserv.SettingType = _setting.Type
+	reserv.Group = _setting.Name
 	reserv.UpdatedAt = time.Now()
 	reserv.Slot = _slot
 

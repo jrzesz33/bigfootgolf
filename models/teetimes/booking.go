@@ -56,12 +56,17 @@ func GetDetailedBlockSettings(season Season) []DetailedBlockSettings {
 func (b *BookingEngine) BookSlot(reservation Reservation) error {
 
 	_day := helper.TruncateToDay(reservation.TeeTime)
-	b.ActiveBlock.Dates[_day].Reservations[int(reservation.Slot)] = reservation
-
+	for i, res := range b.ActiveBlock.Dates[_day].Times {
+		if res.Slot == reservation.Slot {
+			b.ActiveBlock.Dates[_day].Times[i] = reservation
+			return nil
+		}
+	}
 	return nil
 }
 
 func (b *BookingEngine) GetDayTeeTimes(_date time.Time) ([]ReservedDay, error) {
+	var days []ReservedDay
 
 	//get the tee times
 	query := fmt.Sprintf(`MATCH (n:ReservedDay) WHERE date(n.day) = date("%s")
@@ -74,16 +79,24 @@ func (b *BookingEngine) GetDayTeeTimes(_date time.Time) ([]ReservedDay, error) {
 		log.Printf("Error querying with relationships: %v", err)
 		return nil, err
 	}
-	var days []ReservedDay
-	err = json.Unmarshal(dayWithRelationships, &days)
-	if err != nil {
-		return nil, err
+	if dayWithRelationships != nil {
+		err = json.Unmarshal(dayWithRelationships, &days)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(days) == 0 {
 		//no block so create times
+		_seas, err := GetSeason(_date)
+		if err != nil {
+			return nil, err
+		}
+		if _seas != nil {
+			_newDay := NewReservedDay(_date, *_seas)
+			days = append(days, _newDay)
+		}
 	}
-
 	return days, nil
 
 }
@@ -102,4 +115,41 @@ func (d *DetailedBlockSettings) Save() (string, error) {
 	}
 	d.ID = _id
 	return _id, nil
+}
+func (d *DetailedBlockSettings) MatchesType(_day time.Time, _time time.Time) bool {
+	dayType := []int{int(WeekdayMorning), int(WeekdayAfternoon)}
+	if _day.Weekday() == time.Saturday || _day.Weekday() == time.Sunday {
+		dayType = []int{int(WeekdayMorning), int(WeekendAfternoon)}
+	}
+	if d.Type >= dayType[0] && d.Type <= dayType[1] {
+		return true
+	}
+	return false
+}
+
+func mapToBlockDetails(settingMap map[string]interface{}) DetailedBlockSettings {
+	var dbs DetailedBlockSettings
+
+	if id, ok := settingMap["id"].(string); ok {
+		dbs.ID = id
+	}
+	if name, ok := settingMap["name"].(string); ok {
+		dbs.Name = name
+	}
+	if settingType, ok := settingMap["type"].(int64); ok {
+		dbs.Type = int(settingType)
+	}
+	if beginOverride, ok := settingMap["beginOverride"].(time.Time); ok {
+		dbs.BeginOverride = beginOverride
+	}
+	if endOverride, ok := settingMap["endOverride"].(time.Time); ok {
+		dbs.EndOverride = endOverride
+	}
+	if price, ok := settingMap["price"].(float64); ok {
+		dbs.Price = float32(price)
+	}
+	if isAvail, ok := settingMap["isAvail"].(bool); ok {
+		dbs.IsAvail = isAvail
+	}
+	return dbs
 }

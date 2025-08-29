@@ -50,7 +50,7 @@ func SetupDevEnvironment() {
 	//add the reservations to the block
 	testDay := time.Date(2025, time.July, 4, 0, 0, 0, 0, time.Now().Local().Location())
 	slot := 4
-	_booking := eng.ActiveBlock.Dates[testDay].Reservations[slot]
+	_booking := eng.ActiveBlock.Dates[testDay].Times[slot]
 	_booking.BookingUser = &user
 	_booking.Players = append(_booking.Players, user)
 

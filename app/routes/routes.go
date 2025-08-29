@@ -6,13 +6,18 @@ import (
 	"birdsfoot/app/app/pages"
 	"birdsfoot/app/app/pages/admin"
 	"birdsfoot/app/models/auth"
+	"log"
+	"time"
 
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
 )
 
 func RegisterRoutes() {
+	// intialize the local time
+	localTime := time.Now()
+	log.Println("User's local time:", localTime.Format(time.RFC3339))
+
 	// Public routes
-	//app.Route("/", func() app.Composer { return &components.Layout{Page: &pages.Home{}} })
 	app.Route("/", publicRoute(&pages.Home{}))
 	app.Route("/search", func() app.Composer { return &components.Layout{Page: &pages.Search{}} })
 	app.Route("/bookings", func() app.Composer { return &components.Layout{Page: &pages.Bookings{}} })

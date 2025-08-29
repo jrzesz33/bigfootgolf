@@ -47,7 +47,7 @@ func SendPostWithPayload(baseURL, payload string) ([]byte, error) {
 	}
 
 	fmt.Printf("Status: %d\n", resp.StatusCode)
-	fmt.Printf("Response: %s\n", string(body))
+	//fmt.Printf("Response: %s\n", string(body))
 
 	return body, nil
 }
