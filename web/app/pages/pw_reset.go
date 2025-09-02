@@ -1,9 +1,9 @@
 package pages
 
 import (
-	"bigfoot/golf/app/clients"
-	"bigfoot/golf/app/components"
 	"bigfoot/golf/common/models/auth"
+	"bigfoot/golf/web/app/clients"
+	"bigfoot/golf/web/app/components"
 	"encoding/json"
 
 	"github.com/maxence-charriere/go-app/v10/pkg/app"

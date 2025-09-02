@@ -1,9 +1,9 @@
 package pages
 
 import (
-	userui "bigfoot/golf/app/components/user_ui"
-	"bigfoot/golf/app/state"
 	"bigfoot/golf/common/models/account"
+	"bigfoot/golf/web/app/components/userui"
+	"bigfoot/golf/web/app/state"
 
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
 )

@@ -1,10 +1,10 @@
 package pages
 
 import (
-	"bigfoot/golf/app/clients"
-	"bigfoot/golf/app/state"
 	"bigfoot/golf/common/models/auth"
 	"bigfoot/golf/common/models/teetimes"
+	"bigfoot/golf/web/app/clients"
+	"bigfoot/golf/web/app/state"
 	"encoding/json"
 	"fmt"
 	"sort"

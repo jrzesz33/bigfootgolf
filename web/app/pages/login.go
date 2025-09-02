@@ -1,8 +1,8 @@
 package pages
 
 import (
-	"bigfoot/golf/app/state"
 	"bigfoot/golf/common/models/auth"
+	"bigfoot/golf/web/app/state"
 
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
 )

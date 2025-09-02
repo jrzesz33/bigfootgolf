@@ -1,9 +1,9 @@
 package pages
 
 import (
-	"bigfoot/golf/app/components"
 	"bigfoot/golf/common/models/auth"
 	"bigfoot/golf/common/models/teetimes"
+	"bigfoot/golf/web/app/components"
 	"encoding/json"
 	"fmt"
 	"net/http"

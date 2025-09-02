@@ -40,10 +40,10 @@ func main() {
 		},
 		LoadingLabel: "Loading Golf App...",
 		Styles: []string{
-			"/web/app.css",
-			"/web/app_add.css",
-			"/web/nav.css",
-			"/web/agent.css",
+			"/public/app.css",
+			"/public/app_add.css",
+			"/public/nav.css",
+			"/public/agent.css",
 		},
 		Scripts: []string{
 			// Add any external scripts here
@@ -85,7 +85,7 @@ func main() {
 	sessionmgr.NewSessionMgr()
 
 	// Serve static files (optional)
-	r.PathPrefix("/web/").Handler(http.StripPrefix("/web/", http.FileServer(http.Dir("./web"))))
+	r.PathPrefix("/public/").Handler(http.StripPrefix("/public/", http.FileServer(http.Dir("./public"))))
 
 	// This ensures go-app's client-side routing takes over for PWA navigation
 	r.PathPrefix("/").Handler(wasmHandler)

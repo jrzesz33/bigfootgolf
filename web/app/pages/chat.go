@@ -1,8 +1,8 @@
 package pages
 
 import (
-	"bigfoot/golf/app/clients"
 	"bigfoot/golf/common/models/anthropic"
+	"bigfoot/golf/web/app/clients"
 	"fmt"
 
 	"github.com/maxence-charriere/go-app/v10/pkg/app"

@@ -1,13 +1,14 @@
 package pages
 
 import (
-	"bigfoot/golf/app/clients"
-	"bigfoot/golf/app/components"
-	userui "bigfoot/golf/app/components/user_ui"
-	"bigfoot/golf/app/state"
+	"bigfoot/golf/web/app/clients"
+
 	"bigfoot/golf/common/models"
 	"bigfoot/golf/common/models/account"
 	"bigfoot/golf/common/models/auth"
+	"bigfoot/golf/web/app/components"
+	"bigfoot/golf/web/app/components/userui"
+	"bigfoot/golf/web/app/state"
 	"encoding/json"
 	"fmt"
 

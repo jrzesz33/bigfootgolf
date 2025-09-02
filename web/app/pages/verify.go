@@ -1,9 +1,9 @@
 package pages
 
 import (
-	"bigfoot/golf/app/clients"
-	"bigfoot/golf/app/state"
 	"bigfoot/golf/common/models/account"
+	"bigfoot/golf/web/app/clients"
+	"bigfoot/golf/web/app/state"
 	"encoding/json"
 	"strings"
 

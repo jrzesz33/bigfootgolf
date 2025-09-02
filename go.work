@@ -1,7 +1,7 @@
 go 1.23.4
 
 use (
-    ./web
-    ./pkg // If pkg/common is also a module
+	./pkg // If pkg/common is also a module
+	./web
 
 )
