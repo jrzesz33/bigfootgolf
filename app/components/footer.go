@@ -11,7 +11,8 @@ import (
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
 )
 
-const LOGGING_LEVEL string = "debug"
+// LoggingLevel defines the current logging level for the application
+const LoggingLevel string = "debug"
 
 type Footer struct {
 	app.Compo
@@ -33,8 +34,8 @@ type NavItem struct {
 }
 
 func (n *Footer) OnMount(ctx app.Context) {
-	if LOGGING_LEVEL == "debug" {
-		ctx.ObserveState(STATE_KEY, &n.authResp).
+	if LoggingLevel == "debug" {
+		ctx.ObserveState(StateKey, &n.authResp).
 			OnChange(func() {
 				fmt.Println("auth state changed in footer at", time.Now())
 				ctx.Dispatch(func(ctx app.Context) {
@@ -45,6 +46,7 @@ func (n *Footer) OnMount(ctx app.Context) {
 					}
 				})
 			})
+
 	}
 	ctx.GetState("birdwthr", &n.currentWeather)
 	if len(n.currentWeather.Properties.Periods) == 0 {
@@ -89,7 +91,7 @@ func (n *Footer) Render() app.UI {
 						Style("font-style", "italic").
 						Text(n.forecast),
 				),
-			app.If(LOGGING_LEVEL == "debug", func() app.UI {
+			app.If(LoggingLevel == "debug", func() app.UI {
 				return app.Div().
 					Style("font-family", "monospace").
 					Style("font-size", "10px").

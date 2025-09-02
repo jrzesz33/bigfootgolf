@@ -17,7 +17,7 @@ type HamburgerNav struct {
 }
 
 func (h *HamburgerNav) OnMount(ctx app.Context) {
-	ctx.ObserveState(STATE_KEY, &h.authResp).
+	ctx.ObserveState(StateKey, &h.authResp).
 		OnChange(func() {
 			fmt.Println("auth state changed at", time.Now())
 			ctx.Dispatch(func(ctx app.Context) {
@@ -42,6 +42,7 @@ func (h *HamburgerNav) Render() app.UI {
 		{Path: "/teetimes", Icon: "🏌️", Label: "Tee Times"},
 		{Path: "/login", Icon: "👤", Label: "Login", AuthPath: "/account", AuthLabel: "Account"},
 		{AuthPath: "/bookings", Icon: "📅", AuthLabel: "My Reservations"},
+		{AuthPath: "/agent", Icon: "🤖", AuthLabel: "AI Assistant"},
 		{Path: "/about", Icon: "⛳️", Label: "About"},
 		{AuthPath: "/admin", Icon: "✏️", AuthLabel: "Admin", IsAdmin: true},
 	}
@@ -55,7 +56,7 @@ func (h *HamburgerNav) Render() app.UI {
 					app.Div().
 						Class("nav-brand").
 						Body(
-							app.H1().Text("🏌️ Birdsfoot Golf Course"),
+							app.H1().Text("🏌️ Bigfoot Golf Course"),
 						),
 					app.Button().
 						Class("hamburger-btn").

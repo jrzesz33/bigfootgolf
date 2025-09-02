@@ -137,6 +137,10 @@ func (s *AuthServer) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	users, err := account.QueryUsers(map[string]interface{}{
 		"email": req.Email,
 	})
+	if err != nil {
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
 
 	if len(users) > 0 {
 		http.Error(w, "User already exists", http.StatusConflict)

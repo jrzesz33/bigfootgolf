@@ -43,13 +43,13 @@ func (s *Login) Render() app.UI {
 	return _obj
 }
 
-func (r *Login) onLoginClick(ctx app.Context, e app.Event) {
+func (s *Login) onLoginClick(ctx app.Context, e app.Event) {
 
 	appState := state.GetAppState(nil)
-	err := appState.Login(r.newLogin)
+	err := appState.Login(s.newLogin)
 	if err != nil {
 		ctx.Dispatch(func(ctx app.Context) {
-			r.errorMsg = err.Error()
+			s.errorMsg = err.Error()
 
 		})
 	}

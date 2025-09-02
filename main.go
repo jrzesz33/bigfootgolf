@@ -46,6 +46,7 @@ func main() {
 			"/web/app.css",
 			"/web/app_add.css",
 			"/web/nav.css",
+			"/web/agent.css",
 		},
 		Scripts: []string{
 			// Add any external scripts here
@@ -58,6 +59,7 @@ func main() {
 		log.Fatalf("Error loading location: %v", err)
 	}
 	time.Local = loc // Set the global timezone
+	db.TimeLocation = loc
 	fmt.Println("Application timezone set to:", time.Local.String())
 
 	//Initialize the Database

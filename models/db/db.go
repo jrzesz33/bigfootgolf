@@ -20,27 +20,28 @@ type Database struct {
 
 // DynamicNode represents any node that can be saved to Neo4j
 type DynamicNode struct {
-	Label      string                 `json:"label"`
-	Properties map[string]interface{} `json:"properties"`
-	ID         string                 `json:"id,omitempty"`
+	Label      string         `json:"label"`
+	Properties map[string]any `json:"properties"`
+	ID         string         `json:"id,omitempty"`
 }
 
 var (
-	Instance *Database
-	once     sync.Once
+	Instance     *Database
+	once         sync.Once
+	TimeLocation *time.Location
 )
 
 func InitDB(ctx context.Context) {
 
 	once.Do(func() {
 		//
-		dbUri := "bolt://localhost:7687"
+		dbURI := "bolt://localhost:7687"
 		dbUser := "neo4j"
 		dbPassword := os.Getenv("DB_ADMIN")
 		Instance = &Database{}
 		var err error
 		Instance.driver, err = neo4j.NewDriverWithContext(
-			dbUri,
+			dbURI,
 			neo4j.BasicAuth(dbUser, dbPassword, ""),
 			func(c *config.Config) {
 				// Optional: Configure connection pool settings
@@ -73,23 +74,23 @@ func (db *Database) NewReadSession(ctx context.Context) neo4j.SessionWithContext
 }
 
 // Save Dynamic Node
-func (m *Database) SaveDynamicNode(nd DynamicNode) (string, error) {
-	return m.saveNode(m.ctx, nd.Label, nd.Properties)
+func (db *Database) SaveDynamicNode(nd DynamicNode) (string, error) {
+	return db.saveNode(db.ctx, nd.Label, nd.Properties)
 }
 
 // Query nodes with their relationships
-func (m *Database) QueryForJSON(query string, params map[string]any) ([]byte, error) {
-	session := m.driver.NewSession(m.ctx, neo4j.SessionConfig{})
-	defer session.Close(m.ctx)
+func (db *Database) QueryForJSON(query string, params map[string]any) ([]byte, error) {
+	session := db.driver.NewSession(db.ctx, neo4j.SessionConfig{})
+	defer session.Close(db.ctx)
 
-	result, err := session.Run(m.ctx, query, params)
+	result, err := session.Run(db.ctx, query, params)
 	if err != nil {
 		return nil, err
 	}
 
 	// Parse results
 	var response []map[string]any
-	for result.Next(m.ctx) {
+	for result.Next(db.ctx) {
 		record := result.Record()
 		nodeData, _ := record.Get("data") // record.Get("data")
 		//response = append(response, nodeData["data"])
@@ -109,18 +110,18 @@ func (m *Database) QueryForJSON(query string, params map[string]any) ([]byte, er
 }
 
 // Query nodes with their relationships
-func (m *Database) QueryForMap(query string, params map[string]any) ([]map[string]any, error) {
-	session := m.driver.NewSession(m.ctx, neo4j.SessionConfig{})
-	defer session.Close(m.ctx)
+func (db *Database) QueryForMap(query string, params map[string]any) ([]map[string]any, error) {
+	session := db.driver.NewSession(db.ctx, neo4j.SessionConfig{})
+	defer session.Close(db.ctx)
 
-	result, err := session.Run(m.ctx, query, params)
+	result, err := session.Run(db.ctx, query, params)
 	if err != nil {
 		return nil, err
 	}
 
 	// Parse results
 	var response []map[string]any
-	for result.Next(m.ctx) {
+	for result.Next(db.ctx) {
 		record := result.Record()
 		nodeData, _ := record.Get("data") // record.Get("data")
 		//response = append(response, nodeData["data"])

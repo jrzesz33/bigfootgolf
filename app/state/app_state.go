@@ -141,6 +141,12 @@ func (as *AppState) UpdateUser(_user account.User) {
 	defer as.mu.RUnlock()
 	as.tokenManager.UpdateUser(_user)
 }
+
+func (as *AppState) CacheEvent(_type string, _data interface{}) {
+	_event := StateEvent{Type: _type, Data: _data}
+	as.notifySubscribers(_event)
+}
+
 func (as *AppState) ForceRefresh() string {
 	as.mu.RLock()
 	defer as.mu.RUnlock()

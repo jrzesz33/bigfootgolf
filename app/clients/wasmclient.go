@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// SendPostWithPayload sends a POST request with JSON payload to the specified endpoint
 func SendPostWithPayload(baseURL, payload string) ([]byte, error) {
 	// Build URL with ID in path
 	fullURL := fmt.Sprintf("./%s", baseURL)
@@ -46,11 +47,12 @@ func SendPostWithPayload(baseURL, payload string) ([]byte, error) {
 	}
 
 	fmt.Printf("Status: %d\n", resp.StatusCode)
-	fmt.Printf("Response: %s\n", string(body))
+	//fmt.Printf("Response: %s\n", string(body))
 
 	return body, nil
 }
 
+// SendGetReq sends a GET request to the specified endpoint
 func SendGetReq(baseURL string) ([]byte, error) {
 	// Build URL with ID in path
 	fullURL := fmt.Sprintf("./%s", baseURL)
@@ -91,6 +93,7 @@ func SendGetReq(baseURL string) ([]byte, error) {
 	return body, nil
 }
 
+// SendPostWithAuth sends a POST request with authentication token and handles token refresh
 func SendPostWithAuth(baseURL, payload string) ([]byte, models.BError) {
 
 	stMgr := state.GetAppState(nil)
