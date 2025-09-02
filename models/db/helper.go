@@ -20,20 +20,27 @@ func (m *Database) SaveStruct(data interface{}, label string) (string, error) {
 }
 
 type Relation struct {
-	NodeN   string
-	NodeX   string
-	NodeNID string
-	NodeXID string
-	Name    string
+	NodeN    string
+	NodeX    string
+	NodeNID  string
+	NodeXID  string
+	Name     string
+	Property string
+	Body     string
 }
 
 func (m *Database) SaveRelationship(data Relation) error {
 
+	var _prop string
+	if data.Property != "" && data.Body != "" {
+		_prop = fmt.Sprintf(`{%s: "%s"}`, data.Property, data.Body)
+	}
+
 	_query := fmt.Sprintf(`
 		MATCH (n:%s {id: "%s"})
 		MATCH (x:%s {id:"%s"})
-		MERGE (n)-[r:%s]->(x)
-		RETURN r`, data.NodeN, data.NodeNID, data.NodeX, data.NodeXID, data.Name)
+		MERGE (n)-[r:%s %s]->(x)
+		RETURN r`, data.NodeN, data.NodeNID, data.NodeX, data.NodeXID, data.Name, _prop)
 	session := m.NewWriteSession(m.ctx)
 	_, err := session.ExecuteWrite(m.ctx, func(tx neo4j.ManagedTransaction) (interface{}, error) {
 		res, err := tx.Run(m.ctx, _query, nil)
@@ -189,7 +196,12 @@ func prepareProperties(props map[string]interface{}) map[string]interface{} {
 
 		switch v := value.(type) {
 		case time.Time:
-			cleaned[key] = value
+			if _timeV, ok := value.(time.Time); ok {
+				if _timeV.Location() == nil || _timeV.Location().String() == "" {
+					_timeV = assignLocation(_timeV)
+				}
+				cleaned[key] = _timeV
+			}
 		case []interface{}:
 			cleaned[key] = convertSlice(v)
 		case map[string]interface{}:
@@ -209,6 +221,9 @@ func prepareProperties(props map[string]interface{}) map[string]interface{} {
 	}
 
 	return cleaned
+}
+func assignLocation(myTime time.Time) time.Time {
+	return time.Date(myTime.Year(), myTime.Month(), myTime.Day(), myTime.Hour(), myTime.Minute(), myTime.Second(), 0, TimeLocation)
 }
 
 /*

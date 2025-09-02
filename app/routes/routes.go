@@ -20,7 +20,7 @@ func RegisterRoutes() {
 	// Public routes
 	app.Route("/", publicRoute(&pages.Home{}))
 	app.Route("/search", func() app.Composer { return &components.Layout{Page: &pages.Search{}} })
-	app.Route("/bookings", func() app.Composer { return &components.Layout{Page: &pages.Bookings{}} })
+	app.Route("/bookings", func() app.Composer { return &components.Layout{Page: &pages.Bookings{}, PageLevel: auth.LoginLevel} })
 	app.Route("/chat", func() app.Composer { return &components.Layout{Page: &pages.ChatAgent{}} })
 	app.Route("/login", func() app.Composer { return &components.Layout{Page: &pages.Login{}} })
 	app.Route("/register", func() app.Composer { return &components.Layout{Page: &pages.Register{}} })

@@ -479,5 +479,24 @@ input, button {
     width: 100%;
     padding: 5px;
     height: 60px;
-
+    display: flex;
 }
+.fixedTeeDate {
+    font-weight: bold;
+    font-size: 28px;
+    padding: 5px;
+}
+.fixedTeeBtn {
+    font-size: 28px;
+    padding: 5px;
+    cursor: pointer;
+}
+.fixedTeePlayers {
+    font-size: 28px;
+    padding: 5px;
+    padding-left: 20px;
+    cursor: pointer;
+}
+.emoji-selected {
+        filter: hue-rotate(228deg) saturate(900%);
+    }

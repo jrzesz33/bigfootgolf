@@ -46,6 +46,7 @@ func (n *Footer) OnMount(ctx app.Context) {
 					}
 				})
 			})
+
 	}
 	ctx.GetState("birdwthr", &n.currentWeather)
 	if len(n.currentWeather.Properties.Periods) == 0 {

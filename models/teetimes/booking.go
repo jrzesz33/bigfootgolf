@@ -66,13 +66,13 @@ func (b *BookingEngine) BookSlot(reservation Reservation) error {
 }
 
 func (b *BookingEngine) GetDayTeeTimes(_date time.Time) ([]ReservedDay, error) {
-	var days []ReservedDay
+	var days []Reservation
 
 	//get the tee times
-	query := fmt.Sprintf(`MATCH (n:ReservedDay) WHERE date(n.day) = date("%s")
-		OPTIONAL MATCH (n)-[r*1..1]-(related)
-		WITH n, collect(DISTINCT related{.*}) as t
-		RETURN { id: n.id, day: n.day, times: t } as data`, _date.Format(time.DateOnly))
+	query := fmt.Sprintf(`MATCH (n:Reservation) WHERE date(n.createdAt) = date("%s")
+		MATCH (u:User)-[r:BOOKED_TEETIME]->(n)
+		WITH n, u {.*} as user, COLLECT(u {.*}) as players
+		RETURN n{.* , user, players} as data`, _date.Format(time.DateOnly))
 
 	dayWithRelationships, err := db.Instance.QueryForJSON(query, nil) // depth of 2
 	if err != nil {
@@ -85,19 +85,18 @@ func (b *BookingEngine) GetDayTeeTimes(_date time.Time) ([]ReservedDay, error) {
 			return nil, err
 		}
 	}
-
-	if len(days) == 0 {
-		//no block so create times
-		_seas, err := GetSeason(_date)
-		if err != nil {
-			return nil, err
-		}
-		if _seas != nil {
-			_newDay := NewReservedDay(_date, *_seas)
-			days = append(days, _newDay)
-		}
+	var daysOut []ReservedDay
+	//no block so create times
+	_seas, err := GetSeason(_date)
+	if err != nil {
+		return nil, err
 	}
-	return days, nil
+	if _seas != nil {
+		_newDay := NewReservedDay(_date, *_seas, days)
+		daysOut = append(daysOut, _newDay)
+	}
+
+	return daysOut, nil
 
 }
 

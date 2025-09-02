@@ -26,8 +26,9 @@ type DynamicNode struct {
 }
 
 var (
-	Instance *Database
-	once     sync.Once
+	Instance     *Database
+	once         sync.Once
+	TimeLocation *time.Location
 )
 
 func InitDB(ctx context.Context) {

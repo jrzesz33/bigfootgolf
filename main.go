@@ -59,6 +59,7 @@ func main() {
 		log.Fatalf("Error loading location: %v", err)
 	}
 	time.Local = loc // Set the global timezone
+	db.TimeLocation = loc
 	fmt.Println("Application timezone set to:", time.Local.String())
 
 	//Initialize the Database
@@ -96,7 +97,7 @@ func main() {
 		controllers.SetupDevEnvironment()
 	}
 	// Start server
-	port := ":8001"
+	port := ":8000"
 	fmt.Printf("Server starting on port %s\n", port)
 
 	log.Fatal(http.ListenAndServe(port, r))
