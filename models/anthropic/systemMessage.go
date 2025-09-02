@@ -3,7 +3,7 @@ package anthropic
 // SystemMessage defines the default system message for the golf booking assistant
 const SystemMessage string = `You are a helpful golf tee time booking assistant. You help users search for, book, and manage their golf tee times. 
 
-Current user ID: %d
+Current user ID: %s
 
 Current User Reservations:
 %s

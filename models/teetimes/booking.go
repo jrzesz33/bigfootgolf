@@ -65,9 +65,22 @@ func (b *BookingEngine) BookSlot(reservation Reservation) error {
 	return nil
 }
 
+func BookTeeTime(res Reservation) error {
+	if res.BookingUser == nil {
+		return fmt.Errorf("no user found")
+	}
+	if len(res.Players) == 0 {
+		res.Players = append(res.Players, *res.BookingUser)
+	}
+	return res.Save()
+}
+
 func (b *BookingEngine) GetDayTeeTimes(_date time.Time) ([]ReservedDay, error) {
 	var days []Reservation
-
+	//slotQuery := ""
+	//if slot != nil && *slot >= 0 {
+	//	slotQuery = fmt.Sprintf(` {slot: %d}`, slot)
+	//}
 	//get the tee times
 	query := fmt.Sprintf(`MATCH (n:Reservation) WHERE date(n.createdAt) = date("%s")
 		MATCH (u:User)-[r:BOOKED_TEETIME]->(n)
@@ -97,11 +110,6 @@ func (b *BookingEngine) GetDayTeeTimes(_date time.Time) ([]ReservedDay, error) {
 	}
 
 	return daysOut, nil
-
-}
-
-func (b *BookingEngine) AddSeason(season string, dts []time.Time) {
-	//differentiate weekday, holiday, morning Afternoon Times
 
 }
 

@@ -40,10 +40,11 @@ type ClaudeResponse struct {
 	Type    string `json:"type"`
 	Role    string `json:"role"`
 	Content []struct {
-		Type string `json:"type"`
-		Text string `json:"text,omitempty"`
-		Name string `json:"name,omitempty"`
-		ID   string `json:"id,omitempty"`
+		Type  string      `json:"type"`
+		Text  string      `json:"text,omitempty"`
+		Name  string      `json:"name,omitempty"`
+		ID    string      `json:"id,omitempty"`
+		Input interface{} `json:"input,omitempty"`
 	} `json:"content"`
 	Model        string `json:"model"`
 	StopReason   string `json:"stop_reason"`
@@ -100,17 +101,89 @@ func NewClaudeClient(apiKey string) *ClaudeClient {
 func GetAvailableTools() []Tool {
 	return []Tool{
 		{
-			Name:        "calculate",
-			Description: "Perform mathematical calculations",
+			Name:        "get_available_tee_times",
+			Description: "Get available tee times for a specific date",
 			InputSchema: map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
-					"expression": map[string]interface{}{
+					"date": map[string]interface{}{
 						"type":        "string",
-						"description": "The mathematical expression to evaluate",
+						"description": "Date in YYYY-MM-DD format (e.g., 2024-01-15)",
 					},
 				},
-				"required": []string{"expression"},
+				"required": []string{"date"},
+			},
+		},
+		{
+			Name:        "book_tee_time",
+			Description: "Book a tee time reservation for a user",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"date": map[string]interface{}{
+						"type":        "string",
+						"description": "Date in YYYY-MM-DD format",
+					},
+					"time": map[string]interface{}{
+						"type":        "string",
+						"description": "Time in HH:MM format (24-hour)",
+					},
+					"slot": map[string]interface{}{
+						"type":        "integer",
+						"description": "Slot number for the tee time",
+					},
+					"players": map[string]interface{}{
+						"type":        "integer",
+						"description": "Number of players (1-4)",
+						"minimum":     1,
+						"maximum":     4,
+					},
+				},
+				"required": []string{"date", "time", "slot", "players"},
+			},
+		},
+		{
+			Name:        "cancel_reservation",
+			Description: "Cancel an existing tee time reservation",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"reservation_id": map[string]interface{}{
+						"type":        "string",
+						"description": "The ID of the reservation to cancel",
+					},
+				},
+				"required": []string{"reservation_id"},
+			},
+		},
+		{
+			Name:        "get_user_reservations",
+			Description: "Get all reservations for the current user",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"include_past": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Whether to include past reservations",
+						"default":     false,
+					},
+				},
+			},
+		},
+		{
+			Name:        "get_weather_forecast",
+			Description: "Get weather forecast for golf course area",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"days": map[string]interface{}{
+						"type":        "integer",
+						"description": "Number of days to forecast (1-7)",
+						"minimum":     1,
+						"maximum":     7,
+						"default":     3,
+					},
+				},
 			},
 		},
 	}

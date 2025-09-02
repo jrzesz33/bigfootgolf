@@ -96,8 +96,8 @@ func (wh *WeatherHandler) fetchWeatherData() (*WeatherData, error) {
 	return &weatherData, nil
 }
 
-// getWeatherData returns weather data from cache or fetches fresh data
-func (wh *WeatherHandler) getWeatherData() (*WeatherData, error) {
+// GetWeatherData returns weather data from cache or fetches fresh data
+func (wh *WeatherHandler) GetWeatherData() (*WeatherData, error) {
 	wh.cacheMux.RLock()
 	if !wh.isExpired() {
 		data := wh.cache.Data
@@ -136,7 +136,7 @@ func (wh *WeatherHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	weatherData, err := wh.getWeatherData()
+	weatherData, err := wh.GetWeatherData()
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Failed to get weather data: %v", err), http.StatusInternalServerError)
 		return

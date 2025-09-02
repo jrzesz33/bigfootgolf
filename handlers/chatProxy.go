@@ -23,6 +23,13 @@ func GetChatHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_claudeClient := controllers.NewAgentController()
+	
+	// Get user ID from header (set by authentication middleware)
+	userID := r.Header.Get("X-User-ID")
+	if userID != "" {
+		_claudeClient.SetUserID(userID)
+	}
+	
 	chatResponse, err := _claudeClient.HandleChat(message)
 	
 	if err != nil {

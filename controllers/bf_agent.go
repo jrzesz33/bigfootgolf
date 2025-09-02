@@ -2,15 +2,19 @@ package controllers
 
 import (
 	"birdsfoot/app/models/anthropic"
+	"birdsfoot/app/models/teetimes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"time"
 )
 
 type AgentController struct {
-	ChatHistory string
-	Client      anthropic.ClaudeClient
-	Request     anthropic.ChatRequest
+	ChatHistory  string
+	Client       anthropic.ClaudeClient
+	Request      anthropic.ChatRequest
+	ToolExecutor *anthropic.ToolExecutor
+	UserID       string
 }
 
 func NewAgentController() AgentController {
@@ -29,8 +33,13 @@ func NewAgentController() AgentController {
 	return _agent
 }
 
-func (a *AgentController) HandleChat(message anthropic.ChatRequest) (*anthropic.ChatResponse, error) {
+// SetUserID sets the user ID for the agent controller
+func (a *AgentController) SetUserID(userID string) {
+	a.UserID = userID
+	a.ToolExecutor = anthropic.NewToolExecutor(userID)
+}
 
+func (a *AgentController) HandleChat(message anthropic.ChatRequest) (*anthropic.ChatResponse, error) {
 	a.Request = message
 
 	// Set defaults
@@ -42,7 +51,41 @@ func (a *AgentController) HandleChat(message anthropic.ChatRequest) (*anthropic.
 	}
 	a.Request.EnableFunctions = true
 
-	a.Request.SystemMessage = fmt.Sprintf(anthropic.SystemMessage, 1, "")
+	// Initialize tool executor if not set
+	if a.ToolExecutor == nil {
+		a.ToolExecutor = anthropic.NewToolExecutor(a.UserID)
+	}
+
+	// Get user's current reservations for context
+	userReservations, err := teetimes.GetUserReservations(a.UserID, false)
+	if err != nil {
+		fmt.Printf("Warning: Could not get user reservations for context: %v\n", err)
+		userReservations = []teetimes.Reservation{}
+	}
+
+	// Format reservations for system message
+	reservationsText := ""
+	if len(userReservations) == 0 {
+		reservationsText = "No current reservations."
+	} else {
+		for _, res := range userReservations {
+			reservationsText += fmt.Sprintf("- %s at %s | ID: %s | %d players | $%.2f | %s\n",
+				res.TeeTime.Format("January 2, 2006"),
+				res.TeeTime.Format("3:04 PM"),
+				res.ID,
+				len(res.Players)+1,
+				res.Price,
+				res.Group,
+			)
+		}
+	}
+
+	// Add tee time context and user reservations to system message
+	teeTimeContext := anthropic.GetTeeTimeContext()
+	systemMessage := fmt.Sprintf(anthropic.SystemMessage, a.UserID, reservationsText) +
+		"\n\nCurrent Available Tee Times:\n" + teeTimeContext
+
+	a.Request.SystemMessage = systemMessage
 
 	// Ensure we have at least one message
 	if len(a.Request.ConversationHist) == 0 {
@@ -81,13 +124,15 @@ func (a *AgentController) HandleChat(message anthropic.ChatRequest) (*anthropic.
 	claudeResp, err := a.Client.SendMessage(claudeReq)
 	if err != nil {
 		fmt.Printf("Claude API Error: %v\n", err)
-		fmt.Printf("Request details - Model: %s, MaxTokens: %d, Messages: %d\n", 
+		fmt.Printf("Request details - Model: %s, MaxTokens: %d, Messages: %d\n",
 			claudeReq.Model, claudeReq.MaxTokens, len(claudeReq.Messages))
 		return nil, err
 	}
 
-	// Process response and check for function calls
+	// Process response and handle tool calls
 	var responseText string
+	var toolResults []map[string]interface{}
+
 	for _, content := range claudeResp.Content {
 		switch content.Type {
 		case "text":
@@ -96,6 +141,68 @@ func (a *AgentController) HandleChat(message anthropic.ChatRequest) (*anthropic.
 			hasFunctionCall = true
 			if content.Name != "" {
 				functionCalls = append(functionCalls, content.Name)
+
+				// Execute the tool
+				toolInput := make(map[string]interface{})
+				if inputData, ok := content.Input.(map[string]interface{}); ok {
+					toolInput = inputData
+				}
+
+				toolResult, err := a.ToolExecutor.ExecuteTool(content.Name, toolInput)
+				if err != nil {
+					toolResult = fmt.Sprintf("Error executing tool %s: %v", content.Name, err)
+				}
+
+				// Add tool result for follow-up if needed
+				toolResults = append(toolResults, map[string]interface{}{
+					"tool_use_id": content.ID,
+					"type":        "tool_result",
+					"content":     toolResult,
+				})
+
+				// Include tool result in response
+				responseText += fmt.Sprintf("\n\n[Tool Result: %s]\n%s", content.Name, toolResult)
+			}
+		}
+	}
+
+	// If there were tool calls, we might need a follow-up call to Claude
+	if hasFunctionCall && len(toolResults) > 0 {
+		// Add the assistant's message with tool calls
+		followUpMessages := append(a.Request.ConversationHist, anthropic.Message{
+			Role:    "assistant",
+			Content: responseText,
+		})
+
+		// Add tool results as user messages
+		for _, toolResult := range toolResults {
+			resultJSON, _ := json.Marshal(toolResult)
+			followUpMessages = append(followUpMessages, anthropic.Message{
+				Role:    "user",
+				Content: string(resultJSON),
+			})
+		}
+
+		// Make follow-up call to Claude with tool results
+		followUpReq := anthropic.ClaudeRequest{
+			Model:       claudeReq.Model,
+			MaxTokens:   claudeReq.MaxTokens,
+			Temperature: claudeReq.Temperature,
+			Messages:    followUpMessages,
+			System:      claudeReq.System,
+			Tools:       claudeReq.Tools,
+			ToolChoice:  claudeReq.ToolChoice,
+		}
+
+		followUpResp, err := a.Client.SendMessage(followUpReq)
+		if err == nil && len(followUpResp.Content) > 0 {
+			// Use the follow-up response
+			claudeResp = followUpResp
+			responseText = ""
+			for _, content := range followUpResp.Content {
+				if content.Type == "text" {
+					responseText += content.Text
+				}
 			}
 		}
 	}
