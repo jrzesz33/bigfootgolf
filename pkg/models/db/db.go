@@ -13,7 +13,7 @@ import (
 )
 
 type Database struct {
-	driver neo4j.DriverWithContext
+	Driver neo4j.DriverWithContext
 	//mu     sync.RWMutex
 	ctx context.Context
 }
@@ -40,7 +40,7 @@ func InitDB(ctx context.Context) {
 		dbPassword := os.Getenv("DB_ADMIN")
 		Instance = &Database{}
 		var err error
-		Instance.driver, err = neo4j.NewDriverWithContext(
+		Instance.Driver, err = neo4j.NewDriverWithContext(
 			dbURI,
 			neo4j.BasicAuth(dbUser, dbPassword, ""),
 			func(c *config.Config) {
@@ -53,7 +53,7 @@ func InitDB(ctx context.Context) {
 			panic(err)
 		}
 
-		err = Instance.driver.VerifyConnectivity(ctx)
+		err = Instance.Driver.VerifyConnectivity(ctx)
 		if err != nil {
 			panic(err)
 		}
@@ -66,11 +66,11 @@ func InitDB(ctx context.Context) {
 }
 
 func (db *Database) NewWriteSession(ctx context.Context) neo4j.SessionWithContext {
-	return db.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
+	return db.Driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 }
 
 func (db *Database) NewReadSession(ctx context.Context) neo4j.SessionWithContext {
-	return db.driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
+	return db.Driver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 }
 
 // Save Dynamic Node
@@ -80,7 +80,7 @@ func (db *Database) SaveDynamicNode(nd DynamicNode) (string, error) {
 
 // Query nodes with their relationships
 func (db *Database) QueryForJSON(query string, params map[string]any) ([]byte, error) {
-	session := db.driver.NewSession(db.ctx, neo4j.SessionConfig{})
+	session := db.Driver.NewSession(db.ctx, neo4j.SessionConfig{})
 	defer session.Close(db.ctx)
 
 	result, err := session.Run(db.ctx, query, params)
@@ -111,7 +111,7 @@ func (db *Database) QueryForJSON(query string, params map[string]any) ([]byte, e
 
 // Query nodes with their relationships
 func (db *Database) QueryForMap(query string, params map[string]any) ([]map[string]any, error) {
-	session := db.driver.NewSession(db.ctx, neo4j.SessionConfig{})
+	session := db.Driver.NewSession(db.ctx, neo4j.SessionConfig{})
 	defer session.Close(db.ctx)
 
 	result, err := session.Run(db.ctx, query, params)

@@ -6,8 +6,7 @@
 
 2. Initialize Claude Client
    - When the Claude Client initializes, a lookup to notify the system of available tee times for the next two days should be sent into it
-   - A tool needs to be built for the Claude Client that needs added to be able to lookup, book or cancel a reservation
-   - A tool should be added as well to provide weather forecases against the weather api if there are questions on the weather
+   - The service should utilize the MCP Server within the project
 
 3. Agent Capabilities
    - The chat agent should be able to help users book, cancel or view tee times

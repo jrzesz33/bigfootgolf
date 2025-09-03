@@ -15,6 +15,9 @@ type AgentController struct {
 	Request      anthropic.ChatRequest
 	ToolExecutor *anthropic.ToolExecutor
 	UserID       string
+	UserEmail    string
+	MCPClient    *anthropic.MCPClient
+	UseMCP       bool
 }
 
 func NewAgentController() AgentController {
@@ -37,6 +40,28 @@ func NewAgentController() AgentController {
 func (a *AgentController) SetUserID(userID string) {
 	a.UserID = userID
 	a.ToolExecutor = anthropic.NewToolExecutor(userID)
+}
+
+// SetUserInfo sets the user information and optionally enables MCP
+func (a *AgentController) SetUserInfo(userID, userEmail string, enableMCP bool) error {
+	a.UserID = userID
+	a.UserEmail = userEmail
+	a.UseMCP = enableMCP
+	a.ToolExecutor = anthropic.NewToolExecutor(userID)
+
+	// Initialize MCP client if enabled
+	if enableMCP {
+		mcpClient, err := anthropic.NewMCPClient(userID, userEmail)
+		if err != nil {
+			return fmt.Errorf("failed to create MCP client: %v", err)
+		}
+		a.MCPClient = mcpClient
+
+		// Enhance tool executor with MCP capabilities
+		a.ToolExecutor.SetMCPClient(mcpClient)
+	}
+
+	return nil
 }
 
 func (a *AgentController) HandleChat(message anthropic.ChatRequest) (*anthropic.ChatResponse, error) {

@@ -1,9 +1,8 @@
 package controllers
 
 import (
-	"bigfoot/golf/common/models/account"
 	"bigfoot/golf/common/models/db"
-	"bigfoot/golf/common/models/teetimes"
+	"fmt"
 
 	"log"
 	"time"
@@ -12,9 +11,6 @@ import (
 // Example usage demonstrating relationship mapping
 func SetupDevEnvironment() {
 
-	var eng teetimes.BookingEngine
-	//firstTee := time.Hour*6 + time.Minute*30
-	//lastTee := time.Hour*19 + time.Minute*50
 	if isTestDataSetup() {
 		return
 	}
@@ -28,48 +24,7 @@ func SetupDevEnvironment() {
 		return
 
 	}*/
-	// Example 1: Save struct with relationship definitions
-	user := account.User{
-		Email:     "john@example.com",
-		FirstName: "John",
-		LastName:  "Doe",
-		Phone:     "123-123-1234",
-		DOB:       "01/01/1990",
-		CreatedAt: time.Now(),
-	}
-
-	//user.Save()
-
-	//start := time.Date(2025, time.June, 1, 0, 0, 0, 0, time.Now().Local().Location())
-	//end := time.Date(2025, time.August, 1, 0, 0, 0, 0, time.Now().Local().Location())
-
-	//eng.ActiveBlock = teetimes.NewReservationBlock(start, end, 10*time.Minute, firstTee, lastTee)
-
-	//eng.ActiveBlock.Save()
-
-	//add the reservations to the block
-	testDay := time.Date(2025, time.July, 4, 0, 0, 0, 0, time.Now().Local().Location())
-	slot := 4
-	_booking := eng.ActiveBlock.Dates[testDay].Times[slot]
-	_booking.BookingUser = &user
-	_booking.Players = append(_booking.Players, user)
-
-	eng.BookSlot(_booking)
-
-	/* Example 4: Query with relationships
-	dayWithRelationships, err := db.Instance.QueryNodesWithRelationships("ReservedDay", map[string]interface{}{
-		"day": "2025-07-22T00:00:00Z",
-	}, 2) // depth of 2
-
-	if err != nil {
-		log.Printf("Error querying with relationships: %v", err)
-	} else {
-		for _, day := range dayWithRelationships {
-			fmt.Printf("User: %v\n", day.Node)
-			fmt.Printf("Relationships: %v\n", day.Relationships)
-			fmt.Printf("Related nodes: %v\n", day.RelatedNodes)
-		}
-	}*/
+	fmt.Println("test")
 }
 
 func isTestDataSetup() bool {

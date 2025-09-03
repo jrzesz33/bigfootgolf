@@ -12,8 +12,10 @@ import (
 
 // ToolExecutor handles the execution of tools called by Claude
 type ToolExecutor struct {
-	UserID string
-	ResDay map[string]teetimes.ReservedDay
+	UserID    string
+	ResDay    map[string]teetimes.ReservedDay
+	MCPClient *MCPClient
+	UseMCP    bool
 }
 
 // NewToolExecutor creates a new tool executor for a user
@@ -21,7 +23,14 @@ func NewToolExecutor(userID string) *ToolExecutor {
 	return &ToolExecutor{
 		UserID: userID,
 		ResDay: make(map[string]teetimes.ReservedDay),
+		UseMCP: false,
 	}
+}
+
+// SetMCPClient sets the MCP client for enhanced tool execution
+func (te *ToolExecutor) SetMCPClient(mcpClient *MCPClient) {
+	te.MCPClient = mcpClient
+	te.UseMCP = mcpClient != nil
 }
 
 // ExecuteTool executes a tool and returns the result

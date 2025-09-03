@@ -67,3 +67,16 @@ func (r *ReservedDay) GetByTime(hour, minute int) *Reservation {
 	}
 	return nil
 }
+func GetUnbookedReservation(tm time.Time) *Reservation {
+	seas, _ := GetSeason(tm)
+	settings := seas.GetTimeDetails(tm, tm)
+	if settings != nil && settings.IsAvail {
+		hourDiff := tm.Hour() - seas.FirstTeeTime.Hour()
+		minDiff := tm.Minute() - seas.FirstTeeTime.Minute()
+		minDiff += hourDiff * 60
+		slot := minDiff / int(seas.Gap.Minutes())
+
+		return &Reservation{TeeTime: tm, Slot: int64(slot), Price: settings.Price, SettingType: settings.Type, Group: settings.Name}
+	}
+	return nil
+}

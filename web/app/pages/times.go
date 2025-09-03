@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"bigfoot/golf/common/models/account"
 	"bigfoot/golf/common/models/auth"
 	"bigfoot/golf/common/models/teetimes"
 	"bigfoot/golf/web/app/clients"
@@ -19,8 +20,12 @@ type AvailTimes struct {
 	app.Compo
 	selectedDate time.Time
 	//playerCount  int
-	errorMsg  string
-	timeSlots []teetimes.ReservedDay
+	errorMsg       string
+	timeSlots      []teetimes.ReservedDay
+	reservSelected *teetimes.Reservation
+	players        int
+	showPopup      bool
+	authResp       *auth.AuthResponse
 }
 
 func (p *AvailTimes) OnMount(ctx app.Context) {
@@ -28,6 +33,7 @@ func (p *AvailTimes) OnMount(ctx app.Context) {
 	fmt.Println("Selected Date: ", p.selectedDate)
 	//call the web service
 	p.getTeeTimes()
+	p.players = 4
 
 }
 
@@ -52,6 +58,9 @@ func (p *AvailTimes) getTeeTimes() {
 }
 
 func (s *AvailTimes) Render() app.UI {
+	if s.showPopup && s.reservSelected != nil {
+		return s.renderPopup()
+	}
 	if len(s.timeSlots) == 0 {
 		return app.Div().Text("No Tee Times for " + s.selectedDate.Format("01/02/2006"))
 	}
@@ -69,11 +78,6 @@ func (s *AvailTimes) Render() app.UI {
 			}),
 			app.Div().Class("fixedTeeDate").Text(s.selectedDate.Format("Jan 2 Mon")),
 			app.Div().Class("fixedTeeBtn").Text("➡️").OnClick(s.onDateChange),
-			//app.Div().Class("fixedTeePlayers").Text("👤"),
-			app.Div().Class("fixedTeeBtn", "emoji-selected").Text("4️⃣").OnClick(s.onDateChange),
-			app.Div().Class("fixedTeeBtn").Text("3️⃣").OnClick(s.onDateChange),
-			app.Div().Class("fixedTeeBtn").Text("2️⃣").OnClick(s.onDateChange),
-			app.Div().Class("fixedTeeBtn").Text("1️⃣").OnClick(s.onDateChange),
 		),
 		app.Div().
 			Class("time-slots").
@@ -101,7 +105,7 @@ func (s *AvailTimes) Render() app.UI {
 									Text("Book").
 									Value(slot.Slot).
 									OnClick(func(ctx app.Context, e app.Event) {
-										s.onBookSlot(slot, ctx)
+										s.onSelectReservation(slot, ctx)
 									}),
 							)
 					}
@@ -111,16 +115,29 @@ func (s *AvailTimes) Render() app.UI {
 
 	return _obj
 }
-
-func (p *AvailTimes) onBookSlot(time teetimes.Reservation, ctx app.Context) {
+func (p *AvailTimes) onSelectReservation(time teetimes.Reservation, ctx app.Context) {
 	//get logged in User
 	appState := state.GetAppState(nil)
-	_usr := appState.TokenManager().GetAuth()
+	p.authResp = appState.TokenManager().GetAuth()
+	if p.authResp == nil && p.authResp.AuthLevel < auth.LoginLevel {
+		ctx.Navigate("./login")
+	}
+	ctx.Dispatch(func(ctx app.Context) {
+		p.reservSelected = &time
+		p.showPopup = true
+	})
+}
+func (p *AvailTimes) onBookSlot(ctx app.Context, opts app.Event) {
+
+	time := p.reservSelected
 
 	//add the user to the reservation
-	if _usr != nil && _usr.AuthLevel >= auth.LoginLevel {
-		time.BookingUser = &_usr.User
-		time.Players = append(time.Players, _usr.User)
+	if p.authResp != nil && p.authResp.AuthLevel >= auth.LoginLevel {
+		time.BookingUser = &p.authResp.User
+		time.Players = append(time.Players, *time.BookingUser)
+		for i := 1; i < p.players; i++ {
+			time.Players = append(time.Players, account.User{LastName: fmt.Sprintf("Guest %d", i)})
+		}
 		//book the time
 		_slot, _ := json.Marshal(time)
 		resp, erb := clients.SendPostWithAuth("./api/bookTime", string(_slot))
@@ -131,12 +148,16 @@ func (p *AvailTimes) onBookSlot(time teetimes.Reservation, ctx app.Context) {
 			//appState.CacheEvent("newRes", time)
 			//TODO BUILD MOBILE POPUP TO HIGHLIGHT ERROR
 			p.errorMsg = "There was an error booking the time. " + erb.FriendlyMsg()
+			p.showPopup = false
+			p.reservSelected = nil
 			return
 		} else {
 			err := json.Unmarshal(resp, &time)
 			if err != nil {
 				fmt.Println("Error with response: ", err)
 				p.errorMsg = "There was an error booking the time. " + erb.FriendlyMsg()
+				p.showPopup = false
+				p.reservSelected = nil
 				return
 			}
 			ctx.SetState("bookRes", time)
@@ -162,4 +183,59 @@ func (p *AvailTimes) onDateBack(ctx app.Context, opts app.Event) {
 	ctx.Dispatch(func(ctx app.Context) {
 		p.getTeeTimes()
 	})
+}
+
+func (s *AvailTimes) renderPopup() app.UI {
+
+	return app.Div().Class("reservation-card").Body(
+		app.Div().Class("res-hdr").Body(
+			app.Div().Text("BigFoot Golf Club"),
+		),
+		app.Div().Class("res-details").Body(
+			app.Div().Body(
+				app.Span().Text("Date"),
+				app.Span().Text(s.reservSelected.TeeTime.Format("3:04 PM")),
+			),
+			app.Div().Body(
+				app.Span().Text("Tee Time"),
+				app.Span().Text(s.reservSelected.TeeTime.Format("3:04 PM")),
+			),
+			s.renderButtons(),
+			app.Div().Body(
+				app.Span().Text("Price per Person"),
+				app.Span().Text(fmt.Sprintf("$%.2f", s.reservSelected.Price)),
+			),
+		),
+		app.Div().Class("total-rows").Body(
+			app.Div().Body(
+				app.Span().Text("Grand Total"),
+				app.Span().Text(fmt.Sprintf("$%.2f", s.reservSelected.Price*float32(s.players))),
+			),
+			app.Div().Body(
+				app.Button().Text("Book").OnClick(s.onBookSlot),
+				app.Button().Text("Cancel").OnClick(func(ctx app.Context, e app.Event) {
+					ctx.Dispatch(func(ctx app.Context) {
+						s.reservSelected = nil
+						s.showPopup = false
+					})
+				}),
+			),
+		),
+	)
+
+}
+func (s *AvailTimes) renderButtons() app.UI {
+	playerBtns := []string{"1️⃣", "2️⃣", "3️⃣", "4️⃣"}
+
+	divOut := app.Div().Class("fixedTeeHeader").Body(
+		app.Div().Text("Players"),
+		app.Range(playerBtns).Slice(func(i int) app.UI {
+			clsStr := []string{"fixedTeeBtn"}
+			if (i + 1) == s.players {
+				clsStr = append(clsStr, "emoji-selected")
+			}
+			return app.Div().Class(clsStr...).Text(playerBtns[i]).OnClick(func(ctx app.Context, e app.Event) { ctx.Dispatch(func(ctx app.Context) { s.players = i + 1 }) })
+		}),
+	)
+	return divOut
 }
