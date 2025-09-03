@@ -4,19 +4,19 @@
 1. User Authentication
    - Users must be authenticated to utilize this feature
 
-2. Task Management
-   - Create, edit, delete tasks
-   - Set due dates and priorities
-   - Mark tasks as complete
+2. Initialize Claude Client
+   - When the Claude Client initializes, a lookup to notify the system of available tee times for the next two days should be sent into it
+   - A tool needs to be built for the Claude Client that needs added to be able to lookup, book or cancel a reservation
+   - A tool should be added as well to provide weather forecases against the weather api if there are questions on the weather
 
-## WIREFRAMES:
-[Attach wireframe images or describe layouts]
-- Dashboard: Shows task list, filters, add button
-- Task Detail: Form with title, description, due date, priority
-- Navigation: Header with user menu, logout option
+3. Agent Capabilities
+   - The chat agent should be able to help users book, cancel or view tee times
+   - The chat agent should be able to get available tee times in the future
+   - The chat agent should be able to provide weather forecasts based on the weather api and recommendations
 
 ## TECHNICAL PREFERENCES:
-- React frontend
-- Node.js backend
-- PostgreSQL database
-- RESTful API design
+- Follow Existing Techincal Stacks
+- go-app Progressive Web Application Front End
+- Go Backend services
+- neo4j Graph Database
+- Anthropic API Integration

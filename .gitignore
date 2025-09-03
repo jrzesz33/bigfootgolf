@@ -1,3 +1,6 @@
 /.DS_Store
 /.devcontainer
 /.vscode
+go.sum
+.claude/.fuse_hidden00000c2a00000011
+web/main
