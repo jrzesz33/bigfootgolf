@@ -7,3 +7,4 @@ web/main
 mcp/mcp
 mcp/mcp_server
 go.work.sum
+webapp

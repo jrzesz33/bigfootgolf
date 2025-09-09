@@ -1,0 +1,27 @@
+# Multi-stage build: First stage for building Go app
+#FROM cgr.dev/chainguard/go AS builder
+#WORKDIR /src
+# Copy source code
+#COPY . .
+# Download Files
+#RUN go mod download
+#WORKDIR /src/web
+# Build the WASM Application
+#RUN GOOS=js GOARCH=wasm go build -o public/app.wasm -buildvcs=false .
+# Build the Go application from web/main.go
+#RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o webapp ./main.go
+
+# Second stage: Runtime
+#FROM cgr.dev/chainguard/static:latest
+FROM cgr.dev/chainguard/glibc-dynamic
+WORKDIR /app
+
+# Copy the built binary from builder stage
+COPY ./webapp /app/webapp
+
+# Copy public folder contents
+COPY ./web/public/ /app/public/
+
+EXPOSE 8080
+
+ENTRYPOINT ["/app/webapp"]
