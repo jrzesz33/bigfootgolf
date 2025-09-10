@@ -7,12 +7,6 @@ ENV NEO4J_DATA=/data
 ENV NEO4J_LOGS=/logs
 ENV NEO4J_PLUGINS=/plugins
 
-# Configure Neo4j for container environment
-ENV NEO4J_server_default__listen__address=0.0.0.0
-ENV NEO4J_server_bolt_listen__address=0.0.0.0:7687
-ENV NEO4J_server_http_listen__address=0.0.0.0:7474
-ENV NEO4J_server_https_listen__address=0.0.0.0:7473
-
 # Memory settings optimized for small instances
 ENV NEO4J_server_memory_heap_initial__size=512m
 ENV NEO4J_server_memory_heap_max__size=512m
