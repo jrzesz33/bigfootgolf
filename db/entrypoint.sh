@@ -19,14 +19,6 @@ wait_for_neo4j() {
 run_bootstrap_scripts() {
     echo "Running bootstrap scripts..."
     
-    # Run shell scripts first
-    for script in /docker-entrypoint-initdb.d/*.sh; do
-        if [ -r "$script" ]; then
-            echo "Running $script"
-            bash "$script"
-        fi
-    done
-    
     # Run Cypher scripts
     for script in /docker-entrypoint-initdb.d/*.cypher; do
         if [ -r "$script" ]; then
