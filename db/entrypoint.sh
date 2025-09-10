@@ -32,7 +32,7 @@ run_bootstrap_scripts() {
 
 # Start Neo4j in the background
 echo "Starting Neo4j..."
-/docker-entrypoint.sh neo4j &
+/startup/docker-entrypoint.sh neo4j &
 NEO4J_PID=$!
 
 # Wait for Neo4j to be ready, then run bootstrap scripts
