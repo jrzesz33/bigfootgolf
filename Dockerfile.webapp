@@ -22,6 +22,6 @@ COPY ./webapp /app/webapp
 # Copy public folder contents
 COPY ./web/public/ /app/public/
 
-EXPOSE 8080
+EXPOSE 8000
 
 ENTRYPOINT ["/app/webapp"]
