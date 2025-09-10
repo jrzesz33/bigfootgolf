@@ -107,6 +107,31 @@ func GetUserReservations(userID string, includePast bool) ([]Reservation, error)
 	return convertMapsToReservations(reservationMaps), nil
 }
 
+// GetReservationByTime gets the exact reservation by time
+func GetReservationByTime(tm time.Time) *Reservation {
+
+	query := fmt.Sprintf(`MATCH (u:User)-[r:BOOKED_TEETIME]->(res:Reservation)
+			WHERE datetime(res.teeTime) >= datetime(%s)
+			RETURN res{.*, guests} as data`, tm.Format(time.RFC3339))
+
+	reservationMaps, err := db.Instance.QueryForMap(query, nil)
+	if err != nil {
+		return nil
+	}
+
+	if len(reservationMaps) == 0 {
+		return nil
+	}
+
+	res := convertMapsToReservations(reservationMaps)
+	if len(res) > 0 {
+		return &res[0]
+	} else {
+		//there is no Reservation Check to see if one is available
+		return GetUnbookedReservation(tm)
+	}
+}
+
 // CancelReservation cancels a reservation by marking it as cancelled
 func (r *Reservation) Cancel() error {
 	query := fmt.Sprintf(`MATCH (res:Reservation {id: "%s"}) 

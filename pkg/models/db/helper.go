@@ -100,7 +100,7 @@ func (m *Database) saveNode(ctx context.Context, label string, properties map[st
 }
 
 func (m *Database) QueryNodes(label string, filters map[string]interface{}) ([]map[string]any, error) {
-	session := m.driver.NewSession(m.ctx, neo4j.SessionConfig{})
+	session := m.NewReadSession(m.ctx)
 	defer session.Close(m.ctx)
 
 	cypher, params := buildQueryCypher(label, filters)

@@ -49,6 +49,40 @@ web/
 └── main.go        # WebAssembly entry point
 ```
 
+## MCP Server Integration
+
+The application includes a Model Context Protocol (MCP) server that provides secure access to reservation tools for AI agents. The MCP server uses `github.com/mark3labs/mcp-go` v0.39.1.
+
+### MCP Module Structure
+```
+mcp/
+├── server.go     # Main MCP server with OAuth authentication
+├── proxy.go      # Development proxy for CORS support
+├── main.go       # Entry point for MCP server
+└── README.md     # Detailed MCP documentation
+```
+
+### Running the MCP Server
+```bash
+# Production mode (port 8081)
+cd mcp && go run . -mode server
+
+# Development proxy mode (port 8082)
+cd mcp && go run . -mode proxy
+```
+
+### MCP Tools Available
+- `manage_reservations` - Get, book, or cancel user reservations
+- `find_tee_times` - Find available tee times
+- `get_conditions` - Get weather and course conditions
+
+### Integrating MCP with AI Agent
+```go
+// Enable MCP in the agent controller
+agent := controllers.NewAgentController()
+err := agent.SetUserInfo(userID, userEmail, true) // true enables MCP
+```
+
 ## Development Commands
 
 ### Building the WebAssembly Frontend

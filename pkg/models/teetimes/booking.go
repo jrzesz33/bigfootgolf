@@ -1,7 +1,6 @@
 package teetimes
 
 import (
-	"bigfoot/golf/common/helper"
 	"bigfoot/golf/common/models/db"
 	"encoding/json"
 	"fmt"
@@ -51,18 +50,6 @@ func GetDetailedBlockSettings(season Season) []DetailedBlockSettings {
 	//break out the holiday, weekend, morning, afternoon, and evening rates
 
 	return dbs
-}
-
-func (b *BookingEngine) BookSlot(reservation Reservation) error {
-
-	_day := helper.TruncateToDay(reservation.TeeTime)
-	for i, res := range b.ActiveBlock.Dates[_day].Times {
-		if res.Slot == reservation.Slot {
-			b.ActiveBlock.Dates[_day].Times[i] = reservation
-			return nil
-		}
-	}
-	return nil
 }
 
 func BookTeeTime(res Reservation) error {
