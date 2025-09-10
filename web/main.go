@@ -63,7 +63,9 @@ func main() {
 	//Initialize the Database
 	ctx := context.Background()
 	db.InitDB(ctx)
-
+	if db.Instance.Err != nil {
+		fmt.Println("The Database Failed To Intialize, display friendly message...", db.Instance.Err)
+	}
 	// Create a new router
 	r := mux.NewRouter()
 

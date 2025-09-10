@@ -16,6 +16,7 @@ type Database struct {
 	Driver neo4j.DriverWithContext
 	//mu     sync.RWMutex
 	ctx context.Context
+	Err error
 }
 
 // DynamicNode represents any node that can be saved to Neo4j
@@ -50,19 +51,18 @@ func InitDB(ctx context.Context) {
 			})
 
 		if err != nil {
-			panic(err)
+			Instance.Err = err
 		}
 
 		err = Instance.Driver.VerifyConnectivity(ctx)
 		if err != nil {
-			panic(err)
+			Instance.Err = err
 		}
 		Instance.ctx = ctx
 		fmt.Println("Connection established.")
 
 		//defer Neo.session.Close(ctx)
 	})
-
 }
 
 func (db *Database) NewWriteSession(ctx context.Context) neo4j.SessionWithContext {
