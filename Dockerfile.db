@@ -1,13 +1,43 @@
-FROM neo4j:5-community
+FROM neo4j:community-bullseye
 
-ENV NEO4J_AUTH=neo4j/password
-ENV NEO4J_dbms_default__database=bigfoot
-ENV NEO4J_dbms_security_procedures_unrestricted=apoc.*
-ENV NEO4J_dbms_security_procedures_allowlist=apoc.*
+# Set environment variables for configuration
+ENV NEO4J_AUTH=neo4j/changeme
+ENV NEO4J_CONF=/conf
+ENV NEO4J_DATA=/data
+ENV NEO4J_LOGS=/logs
+ENV NEO4J_PLUGINS=/plugins
 
-EXPOSE 7474 7687
+# Configure Neo4j for container environment
+ENV NEO4J_server_default__listen__address=0.0.0.0
+ENV NEO4J_server_bolt_listen__address=0.0.0.0:7687
+ENV NEO4J_server_http_listen__address=0.0.0.0:7474
+ENV NEO4J_server_https_listen__address=0.0.0.0:7473
 
-VOLUME /data
-VOLUME /logs
-VOLUME /import
-VOLUME /plugins
+# Memory settings optimized for small instances
+ENV NEO4J_server_memory_heap_initial__size=512m
+ENV NEO4J_server_memory_heap_max__size=512m
+ENV NEO4J_server_memory_pagecache_size=256m
+
+# Security and operational settings
+ENV NEO4J_server_security_procedures_unrestricted=apoc.*
+ENV NEO4J_server_security_procedures_allowlist=apoc.*
+ENV NEO4J_dbms_logs_debug_level=INFO
+
+# Create directories for custom scripts
+RUN mkdir -p /docker-entrypoint-initdb.d /var/lib/neo4j/conf
+
+# Copy bootstrap scripts
+COPY bootstrap/ /docker-entrypoint-initdb.d/
+COPY entrypoint-wrapper.sh /entrypoint-wrapper.sh
+
+# Make scripts executable
+RUN chmod +x /entrypoint-wrapper.sh
+RUN chmod +x /docker-entrypoint-initdb.d/*.sh 2>/dev/null || true
+RUN chmod +x /docker-entrypoint-initdb.d/*.cypher 2>/dev/null || true
+
+# Expose Neo4j ports
+EXPOSE 7474 7473 7687
+
+# Use custom entrypoint wrapper
+ENTRYPOINT ["/entrypoint-wrapper.sh"]
+CMD ["neo4j"]
