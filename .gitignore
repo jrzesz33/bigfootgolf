@@ -8,3 +8,5 @@ mcp/mcp
 mcp/mcp_server
 go.work.sum
 webapp
+.env
+.claude/.fuse_*
