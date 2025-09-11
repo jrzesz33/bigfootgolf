@@ -29,9 +29,8 @@ run_bootstrap_scripts() {
     
     echo "Bootstrap completed!"
 }
-
 # Start Neo4j in the background
-echo "Starting Neo4j..."
+echo "Starting Neo4j on EphemeralDB v1.1 ..."
 /startup/docker-entrypoint.sh neo4j &
 NEO4J_PID=$!
 

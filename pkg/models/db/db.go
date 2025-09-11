@@ -36,7 +36,7 @@ func InitDB(ctx context.Context) {
 
 	once.Do(func() {
 		//
-		dbURI := "bolt://localhost:7687"
+		dbURI := os.Getenv("DB_URI")
 		dbUser := "neo4j"
 		dbPassword := os.Getenv("DB_ADMIN")
 		Instance = &Database{}

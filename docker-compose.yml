@@ -1,0 +1,49 @@
+
+services:
+  neo4j:
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    container_name: db1
+    ports:
+      - "7474:7474"  # HTTP (for browser access)
+      - "7687:7687"  # Bolt (for application connections)
+    environment:
+      - NEO4J_PASSWORD=${DB_ADMIN}
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    networks:
+      - app-network
+  web-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.webapp
+    container_name: web-app
+    ports:
+      - "8000:8000"  # Adjust port based on your app
+    environment:
+      # Database connection using service name
+      - DB_URI=bolt://neo4j:7687
+      - DB_ADMIN=${DB_ADMIN} 
+      - MODE=dev
+      - SESSION_KEY=${SESSION_KEY} 
+      - GMAIL_USER=${GMAIL_USER} 
+      - GMAIL_PASS=${GMAIL_PASS} 
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY} 
+    #depends_on:
+    #  neo4j:
+    #    condition: service_healthy
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+    name: my-app-network
+
+volumes:
+  neo4j_data:
+    name: neo4j_data
+  neo4j_logs:
+    name: neo4j_logs
