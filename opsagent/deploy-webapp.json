@@ -1,0 +1,38 @@
+{
+  "description": "Deploy a React web application with nginx",
+  "id": "sample-webapp-001",
+  "parameters": {
+    "environment_variables": {
+      "API_URL": "https://api.example.com",
+      "LOG_LEVEL": "info",
+      "NODE_ENV": "production"
+    },
+    "external_egress": [
+      "https://api.example.com",
+      "https://cdn.jsdelivr.net"
+    ],
+    "health_check": {
+      "enabled": true,
+      "interval": 30,
+      "path": "/health",
+      "port": 80,
+      "protocol": "http",
+      "retries": 3,
+      "timeout": 10
+    },
+    "image": "ghcr.io/jrzesz33/react-app:v1.0.0",
+    "ports": [
+      {
+        "container_port": 80,
+        "host_port": 8080,
+        "protocol": "tcp"
+      }
+    ],
+    "public_ports": [
+      8080
+    ]
+  },
+  "priority": "medium",
+  "requester": "development-team",
+  "type": "deploy"
+}

@@ -1,0 +1,165 @@
+{
+  "Resources": {
+    "BOATLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "FunctionName": "boat-ops-agent",
+        "Runtime": "provided.al2",
+        "Handler": "bootstrap",
+        "Role": {"Fn::GetAtt": ["LambdaExecutionRole", "Arn"]},
+        "Code": {
+          "ZipFile": "# BOAT Agent Lambda function code will be uploaded here"
+        },
+        "Environment": {
+          "Variables": {
+            "CLAUDE_API_KEY": "{{.ClaudeAPIKey}}",
+            "AWS_REGION": "{{.AWSRegion}}",
+            "CONTAINER_REGISTRY": "ghcr.io/jrzesz33/",
+            "NOTIFICATION_LEVEL": "INFO"
+          }
+        },
+        "Timeout": 300,
+        "MemorySize": 512,
+        "Description": "Bigfoot Ops Agent for Technology - AI-powered cloud operations"
+      }
+    },
+    "LambdaExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "BOATLambdaExecutionRole",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "BOATOperationsPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "cloudcontrol:CreateResource",
+                    "cloudcontrol:GetResource",
+                    "cloudcontrol:GetResourceRequestStatus",
+                    "cloudcontrol:UpdateResource",
+                    "cloudcontrol:DeleteResource"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:*",
+                    "ec2:DescribeVpcs",
+                    "ec2:DescribeSubnets",
+                    "ec2:DescribeSecurityGroups",
+                    "elasticloadbalancing:*",
+                    "iam:PassRole",
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "EventBridgeRule": {
+      "Type": "AWS::Events::Rule",
+      "Properties": {
+        "Name": "BOATTaskRequestRule",
+        "Description": "Routes task requests to BOAT Agent",
+        "EventPattern": {
+          "source": ["boat.ops"],
+          "detail-type": [
+            "Container Deployment Request",
+            "Infrastructure Task Request", 
+            "Troubleshooting Request"
+          ]
+        },
+        "State": "ENABLED",
+        "Targets": [
+          {
+            "Id": "BOATLambdaTarget",
+            "Arn": {"Fn::GetAtt": ["BOATLambdaFunction", "Arn"]}
+          }
+        ]
+      }
+    },
+    "LambdaInvokePermission": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": {"Ref": "BOATLambdaFunction"},
+        "Principal": "events.amazonaws.com",
+        "SourceArn": {"Fn::GetAtt": ["EventBridgeRule", "Arn"]}
+      }
+    },
+    "BOATNotificationTopic": {
+      "Type": "AWS::SNS::Topic",
+      "Properties": {
+        "TopicName": "boat-notifications",
+        "DisplayName": "BOAT Agent Notifications",
+        "Subscription": [
+          {
+            "Protocol": "email",
+            "Endpoint": "{{.NotificationEmail}}"
+          }
+        ]
+      }
+    },
+    "BOATLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/boat-ops-agent",
+        "RetentionInDays": 14
+      }
+    }
+  },
+  "Parameters": {
+    "ClaudeAPIKey": {
+      "Type": "String",
+      "Description": "API key for Claude AI service",
+      "NoEcho": true
+    },
+    "AWSRegion": {
+      "Type": "String",
+      "Default": "us-east-1",
+      "Description": "AWS region for deployment"
+    },
+    "NotificationEmail": {
+      "Type": "String",
+      "Description": "Email address for BOAT Agent notifications"
+    }
+  },
+  "Outputs": {
+    "LambdaFunctionArn": {
+      "Description": "ARN of the BOAT Lambda function",
+      "Value": {"Fn::GetAtt": ["BOATLambdaFunction", "Arn"]}
+    },
+    "EventBridgeRuleArn": {
+      "Description": "ARN of the EventBridge rule",
+      "Value": {"Fn::GetAtt": ["EventBridgeRule", "Arn"]}
+    },
+    "NotificationTopicArn": {
+      "Description": "ARN of the SNS notification topic",
+      "Value": {"Ref": "BOATNotificationTopic"}
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "description": "Service experiencing high memory usage and slow response times",
+  "id": "sample-troubleshoot-001",
+  "parameters": {
+    "avg_response_time": "2.5s",
+    "cpu_usage": "45%",
+    "error_rate": "12%",
+    "memory_usage": "85%",
+    "service_name": "user-management-api",
+    "symptoms": [
+      "high memory usage",
+      "slow response times",
+      "occasional timeouts"
+    ]
+  },
+  "priority": "urgent",
+  "requester": "ops-team",
+  "type": "troubleshoot"
+}

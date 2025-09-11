@@ -10,3 +10,9 @@ go.work.sum
 webapp
 .env
 .claude/.fuse_*
+opsagent/boat-agent
+opsagent/boat-local
+opsagent/opsagent
+opsagent/build/boat-agent
+opsagent/build/boat-local
+opsagent/build/boat-simulate

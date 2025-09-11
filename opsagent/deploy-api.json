@@ -1,0 +1,46 @@
+{
+  "description": "Deploy Go API service with Redis cache",
+  "id": "sample-api-001",
+  "parameters": {
+    "dynamic_secrets": [
+      "database-password",
+      "jwt-secret"
+    ],
+    "environment_variables": {
+      "GIN_MODE": "release",
+      "LOG_FORMAT": "json",
+      "PORT": "8080"
+    },
+    "existing_secrets": [
+      "redis-connection-string"
+    ],
+    "external_egress": [
+      "https://redis-cluster.amazonaws.com:6379",
+      "https://api.stripe.com"
+    ],
+    "health_check": {
+      "enabled": true,
+      "interval": 15,
+      "path": "/v1/health",
+      "port": 8080,
+      "protocol": "http",
+      "retries": 2,
+      "timeout": 5
+    },
+    "image": "ghcr.io/jrzesz33/api-server:v2.3.1",
+    "ports": [
+      {
+        "container_port": 8080,
+        "host_port": 8080,
+        "protocol": "tcp"
+      }
+    ],
+    "public_ports": [
+      8080
+    ],
+    "replicas": 3
+  },
+  "priority": "high",
+  "requester": "backend-team",
+  "type": "deploy"
+}
