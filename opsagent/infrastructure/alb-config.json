@@ -1,0 +1,61 @@
+{
+    "ApplicationLoadBalancer": {
+        "Name": "bigfootgolf-neo4j-alb",
+        "Scheme": "internet-facing",
+        "Type": "application",
+        "IpAddressType": "ipv4",
+        "Subnets": [
+            "subnet-044f8a2be0880bb6f",
+            "subnet-040ef165d121d0577", 
+            "subnet-01fe36a31868d14d6"
+        ],
+        "SecurityGroups": [
+            "sg-XXXXXXXXX"
+        ],
+        "Tags": [
+            {
+                "Key": "Project",
+                "Value": "bigfootgolf-opsagent"
+            },
+            {
+                "Key": "Component", 
+                "Value": "neo4j-load-balancer"
+            }
+        ]
+    },
+    "TargetGroup": {
+        "Name": "bigfootgolf-neo4j-tg",
+        "Protocol": "HTTP",
+        "Port": 7474,
+        "VpcId": "vpc-0900c8f70d2ce2a18",
+        "TargetType": "ip",
+        "HealthCheckProtocol": "HTTP",
+        "HealthCheckPath": "/",
+        "HealthCheckPort": "7474",
+        "HealthCheckIntervalSeconds": 30,
+        "HealthCheckTimeoutSeconds": 5,
+        "HealthyThresholdCount": 2,
+        "UnhealthyThresholdCount": 3,
+        "Tags": [
+            {
+                "Key": "Project",
+                "Value": "bigfootgolf-opsagent"
+            },
+            {
+                "Key": "Component",
+                "Value": "neo4j-target-group"
+            }
+        ]
+    },
+    "Listener": {
+        "LoadBalancerArn": "REPLACE_WITH_ALB_ARN",
+        "Protocol": "HTTP",
+        "Port": 80,
+        "DefaultActions": [
+            {
+                "Type": "forward",
+                "TargetGroupArn": "REPLACE_WITH_TARGET_GROUP_ARN"
+            }
+        ]
+    }
+}

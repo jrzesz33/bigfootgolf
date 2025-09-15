@@ -1,0 +1,71 @@
+{
+    "family": "bigfootgolf-task-v3-persistent",
+    "containerDefinitions": [
+        {
+            "cpu": 512,
+            "environment": [
+                {
+                    "name": "DB_URI",
+                    "value": "bolt://localhost:7687"
+                }
+            ],
+            "essential": true,
+            "image": "ghcr.io/jrzesz33/bigfootgolf-db:sha-de8de5c",
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/bigfootgolf-task-v3-database",
+                    "awslogs-region": "us-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "memory": 1024,
+            "mountPoints": [
+                {
+                    "sourceVolume": "neo4j-data-volume",
+                    "containerPath": "/data",
+                    "readOnly": false
+                }
+            ],
+            "name": "database",
+            "portMappings": [
+                {
+                    "containerPort": 7474,
+                    "protocol": "tcp"
+                },
+                {
+                    "containerPort": 7687,
+                    "protocol": "tcp"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "NEO4J_PASSWORD",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:944945738659:secret:bigfootgolf-service-v3-db-password-otEGPw"
+                }
+            ],
+            "systemControls": [],
+            "volumesFrom": []
+        }
+    ],
+    "executionRoleArn": "arn:aws:iam::944945738659:role/ecsTaskExecutionRole",
+    "networkMode": "awsvpc",
+    "volumes": [
+        {
+            "name": "neo4j-data-volume",
+            "efsVolumeConfiguration": {
+                "fileSystemId": "fs-0eb3c000647fe8b9d",
+                "transitEncryption": "ENABLED",
+                "authorizationConfig": {
+                    "iam": "ENABLED"
+                }
+            }
+        }
+    ],
+    "placementConstraints": [],
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "512",
+    "memory": "1024"
+}

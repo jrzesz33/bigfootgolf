@@ -1,310 +1,151 @@
-# Bigfoot Ops Agent for Technology (BOAT)
+# BigFoot Golf OpsAgent - Neo4j Deployment
 
-## Overview
+This directory contains configuration files and deployment scripts for deploying Neo4j with persistent storage and a public endpoint on AWS ECS Fargate.
 
-The BOAT (Bigfoot Ops Agent for Technology) is an AI-powered cloud operations agent that automates AWS infrastructure deployment and management. It uses Claude AI to understand natural language requests and the AWS Cloud Control API via MCP (Model Context Protocol) to execute operations.
-
-## Architecture
+## 🏗️ **Architecture Overview**
 
 ```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   EventBridge   │───▶│   Lambda (BOAT)  │───▶│  Claude AI API  │
-│                 │    │                  │    │                 │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                              │
-                              ▼
-                     ┌──────────────────┐
-                     │ AWS Cloud Control│
-                     │      API         │
-                     └──────────────────┘
-                              │
-                              ▼
-                     ┌──────────────────┐
-                     │  AWS Resources   │
-                     │ (ECS, ALB, etc.) │
-                     └──────────────────┘
+Internet → ALB (Port 80) → ECS Tasks (Port 7474) → Neo4j Container
+                                      ↓
+                                 EFS Volume (/data)
 ```
 
-### Key Components
+### **Components:**
+- **ECS Fargate**: Serverless container hosting
+- **Application Load Balancer**: Public endpoint with health checks
+- **EFS**: Persistent storage for Neo4j `/data` directory
+- **Secrets Manager**: Secure password storage
+- **Security Groups**: Network security controls
 
-1. **Lambda Handler** (`main.go`) - Processes EventBridge events
-2. **BOAT Agent** (`internal/agent/`) - Core AI-powered agent logic
-3. **Claude Integration** - Natural language processing and planning
-4. **AWS Manager** (`internal/aws/`) - AWS resource management
-5. **MCP Server** - Model Context Protocol for AI tool access
-6. **Validation System** (`pkg/validation/`) - Container requirement validation
-7. **Deployment Engine** (`pkg/deployment/`) - Resource deployment orchestration
-8. **Monitoring & Alerts** (`internal/monitoring/`) - Comprehensive observability
-
-## Technology Preferences
-
-### Cost Optimization
-- **Minimal costs**: Stay within AWS free tier whenever possible
-- **Fargate over EC2**: Reduce management overhead
-- **Default VPC usage**: Minimize networking costs
-- **Conservative resource sizing**: Start small, scale as needed
-
-### Container Requirements
-All deployments must specify:
-- **Ports**: Container and host port mappings
-- **Dynamic Secrets**: Secrets to be created during deployment
-- **Existing Secrets**: Pre-existing secret references
-- **Environment Variables**: Configuration parameters
-- **External Egress**: Required internet access (specific URLs/IPs)
-- **Public Ports**: Ports to expose via load balancer
-- **Health Checks**: Endpoint, protocol, intervals
-
-### Registry Restriction
-- **Only** pull containers from `ghcr.io/jrzesz33/` registry
-- Validates image sources during deployment planning
-
-## Usage
-
-### Deployment
-
-1. **Set environment variables**:
-   ```bash
-   export CLAUDE_API_KEY="your-claude-api-key"
-   export NOTIFICATION_EMAIL="your-email@example.com"
-   ```
-
-2. **Deploy to AWS**:
-   ```bash
-   make deploy
-   ```
-
-3. **Send a task request**:
-   ```bash
-   make test-event
-   ```
-
-### Local Development
-
-1. **Build locally**:
-   ```bash
-   make build-local
-   ```
-
-2. **Run tests**:
-   ```bash
-   make test
-   ```
-
-3. **Lint code**:
-   ```bash
-   make lint
-   ```
-
-### Task Request Format
-
-Send events to EventBridge with source `boat.ops`:
-
-```json
-{
-  "Source": "boat.ops",
-  "DetailType": "Container Deployment Request",
-  "Detail": {
-    "id": "task-001",
-    "type": "deploy",
-    "description": "Deploy user authentication service with Redis cache",
-    "parameters": {
-      "image": "ghcr.io/jrzesz33/auth-service:v1.2.0",
-      "replicas": 2,
-      "cache_required": true
-    },
-    "priority": "high",
-    "requester": "dev-team"
-  }
-}
-```
-
-## Agent Capabilities
-
-### 1. Container Deployment
-- Validates container requirements
-- Creates ECS services with Fargate
-- Sets up load balancers and security groups
-- Configures health checks and monitoring
-
-### 2. Infrastructure Management
-- Uses AWS Cloud Control API for resource management
-- Tracks resource dependencies
-- Estimates costs before deployment
-- Ensures free tier compliance
-
-### 3. Intelligent Planning
-- Claude AI analyzes natural language requests
-- Generates optimized deployment plans
-- Identifies missing requirements
-- Suggests cost optimizations
-
-### 4. Monitoring & Alerting
-- Comprehensive metrics collection
-- Cost threshold monitoring
-- Error rate tracking
-- Performance analytics
-
-## File Structure
+## 📁 **File Structure**
 
 ```
 opsagent/
-├── cmd/
-│   └── lambda/              # Lambda entry point
-├── internal/
-│   ├── agent/              # Core BOAT agent logic
-│   ├── aws/                # AWS service integrations
-│   ├── config/             # Configuration management
-│   ├── models/             # Data models
-│   ├── monitoring/         # Metrics and alerting
-│   └── notifications/      # Notification system
-├── pkg/
-│   ├── deployment/         # Deployment orchestration
-│   └── validation/         # Requirement validation
-├── templates/              # CloudFormation templates
-│   ├── ecs-service.json    # ECS service template
-│   └── lambda-eventbridge.json # Lambda deployment
-├── Makefile               # Build and deployment commands
-└── main.go               # Alternative entry point
+├── tasks/
+│   ├── neodb.json                    # Original task definition
+│   └── neodb-with-persistence.json   # Enhanced with EFS volume
+├── infrastructure/
+│   ├── alb-config.json              # Load balancer configuration
+│   ├── security-group.json          # Security group definitions
+│   └── ecs-service.json             # ECS service with ALB integration
+├── deploy-neo4j-persistent.sh       # Complete deployment script
+└── README.md                        # This file
 ```
 
-## Monitoring
+## 🚀 **Quick Deployment**
 
-### Metrics Collected
-- Task execution duration and success rates
-- AWS resource creation metrics
-- Claude API usage and response times
-- Cost estimation accuracy
-- Error rates and failure patterns
+### **Prerequisites:**
+- AWS CLI configured with appropriate permissions
+- ECS cluster `bigfootgolf-opsagent-cluster` exists
+- IAM role `ecsTaskExecutionRole` exists
+- Secrets Manager secret for Neo4j password exists
 
-### Alerting Thresholds
-- **Cost**: $100 monthly threshold
-- **Error Rate**: 20% failure rate
-- **Duration**: 10-minute task timeout
-- **Consecutive Failures**: 3 failures trigger alert
+### **Deploy:**
+```bash
+cd /workspaces/golf_app/opsagent
+./deploy-neo4j-persistent.sh
+```
 
-### Log Structure
-All logs use structured JSON format:
+This script will:
+1. ✅ Create EFS file system with encryption
+2. ✅ Set up EFS mount targets in multiple AZs
+3. ✅ Create security groups for ALB and tasks
+4. ✅ Register enhanced task definition with EFS volume
+5. ✅ Create Application Load Balancer
+6. ✅ Set up target group and health checks
+7. ✅ Create ECS service with ALB integration
+8. ✅ Wait for deployment to complete
 
+## 🔧 **Key Modifications Made**
+
+### **1. Persistent Storage (EFS Volume)**
 ```json
 {
-  "timestamp": "2024-01-15T10:30:00Z",
-  "level": "info",
-  "event_type": "task_completed",
-  "task_id": "task-001",
-  "status": "success",
-  "duration_ms": 45000,
-  "resources_created": 5,
-  "estimated_cost": 16.20
+  "volumes": [
+    {
+      "name": "neo4j-data-volume",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-XXXXXXXXX",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ]
 }
 ```
 
-## Security
-
-### IAM Permissions
-The Lambda function requires permissions for:
-- CloudFormation stack operations
-- ECS service management
-- EC2 VPC and security group access
-- Elastic Load Balancing operations
-- CloudWatch Logs
-
-### Secret Management
-- Claude API key stored as environment variable
-- AWS credentials via IAM role
-- Container secrets managed via AWS Secrets Manager
-- No hardcoded credentials in code
-
-## Cost Optimization Features
-
-### Automatic Optimizations
-- **Fargate Spot**: Uses Fargate for cost-effective compute
-- **Minimal Resources**: Starts with 256 CPU / 512 MB memory
-- **Default VPC**: Uses existing networking infrastructure
-- **Log Retention**: 7-14 day log retention to minimize storage costs
-
-### Cost Monitoring
-- Real-time cost estimation before deployment
-- Free tier compliance checking
-- Resource usage tracking
-- Monthly cost projections
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Missing Requirements Alert**:
-   - Check container image registry (`ghcr.io/jrzesz33/`)
-   - Verify all required fields in task request
-   - Review validation error logs
-
-2. **Cost Threshold Exceeded**:
-   - Review resource requirements
-   - Consider smaller instance sizes
-   - Check if resources can be shared
-
-3. **Deployment Failures**:
-   - Check IAM permissions
-   - Verify VPC/subnet availability
-   - Review CloudWatch logs
-
-### Debugging Commands
-
-```bash
-# Check deployment status
-make status
-
-# View recent logs
-make logs
-
-# Send test event
-make test-event
-
-# Clean and rebuild
-make clean && make build
+### **2. Container Mount Points**
+```json
+{
+  "mountPoints": [
+    {
+      "sourceVolume": "neo4j-data-volume",
+      "containerPath": "/data",
+      "readOnly": false
+    }
+  ]
+}
 ```
 
-## Contributing
+### **3. Load Balancer Integration**
+- **Public endpoint**: `http://<ALB-DNS-NAME>`
+- **Health checks**: HTTP on port 7474
+- **Target type**: IP (required for Fargate)
+- **Multi-AZ**: Deployed across 3 availability zones
 
-### Development Setup
+### **4. Security Configuration**
+- **ALB Security Group**: Allows HTTP/HTTPS from internet
+- **Task Security Group**: Allows access only from ALB
+- **EFS Security**: Transit encryption enabled
 
-1. **Install tools**:
-   ```bash
-   make install-tools
-   ```
+## 🌐 **Public Access**
 
-2. **Run quality checks**:
-   ```bash
-   make test lint vet security
-   ```
+After deployment completes:
 
-3. **Local testing**:
-   ```bash
-   make run-local
-   ```
-    
-### Code Standards
-- Go 1.23+ required
-- Use structured logging (logrus with JSON format)
-- Comprehensive error handling
-- Unit tests for all public functions
-- Security-first development practices
+1. **Neo4j Browser**: `http://<ALB-DNS-NAME>`
+2. **Database Connection**: Use ALB DNS name on port 80
+3. **Password**: Retrieved from AWS Secrets Manager
+4. **Data Persistence**: All data stored in EFS survives container restarts
 
-## Future Enhancements
+## 📊 **Monitoring & Logs**
 
-### Planned Features
-- Multi-region deployment support
-- Advanced cost optimization algorithms
-- Integration with more AWS services
-- Custom deployment templates
-- Web-based management console
-- Slack/Teams integration for notifications
+- **CloudWatch Logs**: `/ecs/bigfootgolf-task-v3-database`
+- **ALB Metrics**: Available in CloudWatch
+- **Health Checks**: Configured for port 7474
+- **EFS Metrics**: File system performance monitoring
 
-### MCP Extensions
-- Additional tool integrations
-- Custom tool development
-- Enhanced AI agent capabilities
-- Multi-model AI support
+## 🔒 **Security Features**
 
-## License
+- ✅ EFS encryption at rest and in transit
+- ✅ Secrets Manager for password storage
+- ✅ Security groups with least privilege access
+- ✅ ALB with AWS security features
+- ✅ Private subnets for ECS tasks (with NAT gateway)
 
-This project is part of the Bigfoot Golf application suite. See the main project license for details.
+## 💰 **Cost Optimization**
+
+- **EFS**: Provisioned throughput at 1 MiB/s (minimal cost)
+- **Fargate**: 512 CPU units, 1024 MB memory
+- **ALB**: Standard Application Load Balancer pricing
+- **No NAT Gateway**: Uses public subnets with public IPs
+
+## 🔧 **Manual Customization**
+
+If you need to modify the configuration:
+
+1. **EFS File System ID**: Update in `neodb-with-persistence.json`
+2. **Security Group IDs**: Update in deployment script
+3. **Subnet IDs**: Already configured for your default VPC
+4. **Resource Names**: Modify in deployment script
+
+## 🎯 **Next Steps**
+
+After deployment:
+1. Access Neo4j browser at the provided ALB DNS name
+2. Login with credentials from Secrets Manager
+3. Your data will persist across container restarts
+4. Scale the service up/down as needed
+
+The deployment provides a production-ready Neo4j instance with persistent storage and public access through a secure, load-balanced endpoint.

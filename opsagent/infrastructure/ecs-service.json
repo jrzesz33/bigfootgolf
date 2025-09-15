@@ -1,0 +1,38 @@
+{
+    "ServiceName": "bigfootgolf-neo4j-service",
+    "Cluster": "bigfootgolf-opsagent-cluster",
+    "TaskDefinition": "bigfootgolf-task-v3-persistent",
+    "LaunchType": "FARGATE",
+    "DesiredCount": 1,
+    "NetworkConfiguration": {
+        "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "Subnets": [
+                "subnet-044f8a2be0880bb6f",
+                "subnet-040ef165d121d0577",
+                "subnet-01fe36a31868d14d6"
+            ],
+            "SecurityGroups": [
+                "REPLACE_WITH_TASK_SG_ID"
+            ]
+        }
+    },
+    "LoadBalancers": [
+        {
+            "ContainerName": "database",
+            "ContainerPort": 7474,
+            "TargetGroupArn": "REPLACE_WITH_TARGET_GROUP_ARN"
+        }
+    ],
+    "HealthCheckGracePeriodSeconds": 300,
+    "Tags": [
+        {
+            "Key": "Project",
+            "Value": "bigfootgolf-opsagent"
+        },
+        {
+            "Key": "Component",
+            "Value": "neo4j-ecs-service"
+        }
+    ]
+}
