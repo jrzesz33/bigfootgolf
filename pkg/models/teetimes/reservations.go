@@ -11,8 +11,8 @@ import (
 type Reservation struct {
 	ID          string         `json:"id,omitempty"`
 	TeeTime     time.Time      `json:"teeTime"`
-	BookingUser *account.User  `json:"user,omitempty"`
-	Players     []account.User `json:"players"`
+	BookingUser *account.User  //`json:"user,omitempty"`
+	Players     []account.User //`json:"players"`
 	Slot        int64          `json:"slot"`
 	Price       float32        `json:"price"`
 	SettingType int            `json:"type"`

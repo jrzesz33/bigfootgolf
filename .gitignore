@@ -16,3 +16,9 @@ opsagent/opsagent
 opsagent/build/boat-agent
 opsagent/build/boat-local
 opsagent/build/boat-simulate
+go.work.sum
+opsagent/bin/ploomfoot
+opsagent/bin/opsagent
+bin/web-server
+go.work.sum
+go.work.sum
