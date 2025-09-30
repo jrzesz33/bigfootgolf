@@ -1,0 +1,11 @@
+config:
+  bigfoot-golf-opsagent:neo4j-password:
+    secure: AAABANyNqsGaVuzvTPyjpOfKnTW0IO6V8TnWf/TAgwRbhceuWlWhpvPUdkc=
+  bigfoot-golf-opsagent:session-key:
+    secure: AAABAExHtrfRdUlijyNvJS2hKMq7HTcNHd2ALY2urhcz+5Be8j9CZabNt+J0tA59nh/R74mGlh3vs2jJaiHd/9bulj+aMSCQ5hFYkQ==
+  bigfoot-golf-opsagent:gmail-pass:
+    secure: AAABAJ28GtnUPWtW03tx0MOXieiQlP162lNtMCJ+mVjk2+b8852tVo3v2TkHzTCrTgp1
+  bigfoot-golf-opsagent:anthropic-api-key:
+    secure: AAABAKZQM4f0k72USUZPw2aZnLo9+xPzbJQ6vxx6Fa1V6p809hM5hlzfV6q/IOCFrzzLFkgQBHfCc8RS3ERhBocasEIDNWhTdBcW+UTuB1F8H/3TyKglJKmszDuJTovWek2LGRXHtV0zv9hBL4vkM7Cw9iZIsD99RIdaTBclUaGsC+oul6swJwmisrM=
+  bigfoot-golf-opsagent:mode: dev
+  bigfoot-golf-opsagent:gmail-user: your-email@gmail.com
