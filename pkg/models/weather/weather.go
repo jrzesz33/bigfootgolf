@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -131,6 +132,7 @@ func (wh *WeatherHandler) GetWeatherData() (*WeatherData, error) {
 
 // ServeHTTP implements the http.Handler interface
 func (wh *WeatherHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	log.Println("Getting Weather From External Service")
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -143,7 +145,7 @@ func (wh *WeatherHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-
+	log.Println("Storing Weather in Cache...")
 	// Add cache info header
 	wh.cacheMux.RLock()
 	cacheAge := time.Since(wh.cache.Timestamp)
