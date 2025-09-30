@@ -702,7 +702,7 @@ func main() {
 						"interval":    30,
 						"timeout":     3,
 						"retries":     3,
-						"startPeriod": 60,
+						"startPeriod": 90,
 					},
 				},
 				{
@@ -770,7 +770,7 @@ func main() {
 						"interval":    30,
 						"timeout":     5,
 						"retries":     3,
-						"startPeriod": 60,
+						"startPeriod": 90,
 					},
 				},
 			}
@@ -847,7 +847,7 @@ func main() {
 				"Name":    pulumi.String("BigFoot Golf Service"),
 				"Project": pulumi.String("BigFoot Golf"),
 			},
-		})
+		}, pulumi.IgnoreChanges([]string{"taskDefinition", "desiredCount"}))
 		if err != nil {
 			return err
 		}

@@ -18,7 +18,7 @@ func RegisterRoutes() {
 	log.Println("User's local time:", localTime.Format(time.RFC3339))
 
 	// Public routes
-	app.Route("/", publicRoute(&pages.Home{}))
+	app.Route("/", func() app.Composer { return &components.Layout{Page: &pages.Home{}} })
 	app.Route("/search", func() app.Composer { return &components.Layout{Page: &pages.Search{}} })
 	app.Route("/bookings", func() app.Composer { return &components.Layout{Page: &pages.Bookings{}, PageLevel: auth.LoginLevel} })
 	app.Route("/chat", func() app.Composer { return &components.Layout{Page: &pages.ChatAgent{}} })
@@ -36,8 +36,4 @@ func RegisterRoutes() {
 	app.Route("/admin", func() app.Composer { return &components.Layout{Page: &admin.Administer{}, PageLevel: auth.LoginLevel} })
 	//RegisterProtectedRoutes()
 
-}
-
-func publicRoute(_page app.UI) func() app.Composer {
-	return func() app.Composer { return &components.Layout{Page: _page} }
 }

@@ -66,11 +66,13 @@ func main() {
 	if db.Instance.Err != nil {
 		fmt.Println("The Database Failed To Intialize, display friendly message...", db.Instance.Err)
 	}
+	fmt.Println("Creating the Router")
 	// Create a new router
 	r := mux.NewRouter()
-
+	log.Println("Adding Middleware")
 	// Apply global middleware
 	r.Use(loggingMiddleware)
+
 	// Create API subrouter
 	api := r.PathPrefix("/api").Subrouter()
 	handlers.RegisterAPIRoutes(api)
