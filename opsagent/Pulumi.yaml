@@ -23,10 +23,10 @@ config:
     secret: true
   bigfoot-golf-opsagent:neo4j-image:
     description: Neo4j Docker image to use
-    value: ghcr.io/jrzesz33/bigfootgolf-db:sha-d233814
+    value: ghcr.io/jrzesz33/bigfootgolf-db:main
   bigfoot-golf-opsagent:web-app-image:
     description: Web application Docker image to use
-    value: ghcr.io/jrzesz33/bigfootgolf-webapp:sha-3f3631d
+    value: ghcr.io/jrzesz33/bigfootgolf-webapp:main
   bigfoot-golf-opsagent:mode:
     description: Application mode (dev or prod)
     value: dev

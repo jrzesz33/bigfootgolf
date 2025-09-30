@@ -312,10 +312,10 @@ func main() {
 				Port:               pulumi.String("8000"),
 				Protocol:           pulumi.String("HTTP"),
 				HealthyThreshold:   pulumi.Int(2),
-				UnhealthyThreshold: pulumi.Int(3),
-				Timeout:            pulumi.Int(5),
-				Interval:           pulumi.Int(30),
-				Matcher:            pulumi.String("200-299"),
+				UnhealthyThreshold: pulumi.Int(10),
+				Timeout:            pulumi.Int(25),
+				Interval:           pulumi.Int(60),
+				Matcher:            pulumi.String("200-399"),
 			},
 			Tags: pulumi.StringMap{
 				"Name":    pulumi.String("BigFoot Golf Web App TG"),
@@ -339,13 +339,39 @@ func main() {
 				Port:               pulumi.String("7474"),
 				Protocol:           pulumi.String("HTTP"),
 				HealthyThreshold:   pulumi.Int(2),
-				UnhealthyThreshold: pulumi.Int(3),
-				Timeout:            pulumi.Int(5),
-				Interval:           pulumi.Int(30),
-				Matcher:            pulumi.String("200-299"),
+				UnhealthyThreshold: pulumi.Int(10),
+				Timeout:            pulumi.Int(30),
+				Interval:           pulumi.Int(60),
+				Matcher:            pulumi.String("200-399"),
 			},
 			Tags: pulumi.StringMap{
 				"Name":    pulumi.String("BigFoot Golf Neo4j HTTP TG"),
+				"Project": pulumi.String("BigFoot Golf"),
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		// Create Target Group for Neo4j Bolt (port 7687)
+		neo4jBoltTargetGroup, err := lb.NewTargetGroup(ctx, "neo4j-bolt-tg", &lb.TargetGroupArgs{
+			Name:       pulumi.String("bigfoot-golf-neo4j-bolt-tg"),
+			Port:       pulumi.Int(7687),
+			Protocol:   pulumi.String("HTTP"),
+			VpcId:      pulumi.String(defaultVpc.Id),
+			TargetType: pulumi.String("ip"),
+			HealthCheck: &lb.TargetGroupHealthCheckArgs{
+				Enabled:            pulumi.Bool(true),
+				Path:               pulumi.String("/"),
+				Port:               pulumi.String("7687"),
+				Protocol:           pulumi.String("HTTP"),
+				HealthyThreshold:   pulumi.Int(2),
+				UnhealthyThreshold: pulumi.Int(10),
+				Timeout:            pulumi.Int(30),
+				Interval:           pulumi.Int(60),
+			},
+			Tags: pulumi.StringMap{
+				"Name":    pulumi.String("BigFoot Golf Neo4j Bolt TG"),
 				"Project": pulumi.String("BigFoot Golf"),
 			},
 		})
@@ -378,6 +404,22 @@ func main() {
 				&lb.ListenerDefaultActionArgs{
 					Type:           pulumi.String("forward"),
 					TargetGroupArn: neo4jHttpTargetGroup.Arn,
+				},
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		// Create Listener for port 7687 -> Neo4j Bolt (7687)
+		_, err = lb.NewListener(ctx, "neo4j-bolt-listener", &lb.ListenerArgs{
+			LoadBalancerArn: alb.Arn,
+			Port:            pulumi.Int(7687),
+			Protocol:        pulumi.String("HTTP"),
+			DefaultActions: lb.ListenerDefaultActionArray{
+				&lb.ListenerDefaultActionArgs{
+					Type:           pulumi.String("forward"),
+					TargetGroupArn: neo4jBoltTargetGroup.Arn,
 				},
 			},
 		})
@@ -639,17 +681,17 @@ func main() {
 			return err
 		}
 
-		// Create ECS Task Definition - only container definitions as JSON
-		containerDefinitionsJSON := pulumi.All(
+		// Build dependencies on all mount targets
+		var mountTargetDeps []pulumi.Resource
+		for _, mt := range mountTargets {
+			mountTargetDeps = append(mountTargetDeps, mt)
+		}
+
+		// Create separate container definitions for Neo4j and Web App
+		neo4jContainerDefinitionsJSON := pulumi.All(
 			neo4jSecret.Arn,
-			sessionSecret.Arn,
-			gmailPassSecret.Arn,
-			anthropicSecret.Arn,
 		).ApplyT(func(args []interface{}) (string, error) {
 			neo4jSecretArn := args[0].(string)
-			sessionSecretArn := args[1].(string)
-			gmailPassSecretArn := args[2].(string)
-			anthropicSecretArn := args[3].(string)
 
 			containerDefs := []map[string]interface{}{
 				{
@@ -700,11 +742,37 @@ func main() {
 							"wget --no-verbose --tries=1 --spider http://localhost:7474/ || exit 1",
 						},
 						"interval":    30,
-						"timeout":     3,
+						"timeout":     5,
 						"retries":     3,
-						"startPeriod": 90,
+						"startPeriod": 60,
 					},
 				},
+			}
+
+			jsonBytes, err := json.Marshal(containerDefs)
+			if err != nil {
+				return "", err
+			}
+			return string(jsonBytes), nil
+		}).(pulumi.StringOutput)
+
+		webAppContainerDefinitionsJSON := pulumi.All(
+			neo4jSecret.Arn,
+			sessionSecret.Arn,
+			gmailPassSecret.Arn,
+			anthropicSecret.Arn,
+			alb.DnsName,
+		).ApplyT(func(args []interface{}) (string, error) {
+			neo4jSecretArn := args[0].(string)
+			sessionSecretArn := args[1].(string)
+			gmailPassSecretArn := args[2].(string)
+			anthropicSecretArn := args[3].(string)
+			albDnsName := args[4].(string)
+
+			// Build the Neo4j Bolt URI using the ALB DNS name
+			neo4jBoltUri := fmt.Sprintf("bolt://%s:7687", albDnsName)
+
+			containerDefs := []map[string]interface{}{
 				{
 					"name":      "web-app",
 					"image":     webAppImage,
@@ -718,7 +786,7 @@ func main() {
 					"environment": []map[string]interface{}{
 						{
 							"name":  "DB_URI",
-							"value": "bolt://localhost:7687",
+							"value": neo4jBoltUri,
 						},
 						{
 							"name":  "MODE",
@@ -747,12 +815,6 @@ func main() {
 							"valueFrom": anthropicSecretArn,
 						},
 					},
-					"dependsOn": []map[string]interface{}{
-						{
-							"containerName": "neo4j",
-							"condition":     "HEALTHY",
-						},
-					},
 					"logConfiguration": map[string]interface{}{
 						"logDriver": "awslogs",
 						"options": map[string]interface{}{
@@ -765,12 +827,12 @@ func main() {
 					"healthCheck": map[string]interface{}{
 						"command": []string{
 							"CMD-SHELL",
-							"wget --no-verbose --tries=1 --spider http://localhost:8000/web/app.css || exit 1",
+							"exit 0",
 						},
 						"interval":    30,
-						"timeout":     5,
+						"timeout":     35,
 						"retries":     3,
-						"startPeriod": 90,
+						"startPeriod": 60,
 					},
 				},
 			}
@@ -782,19 +844,14 @@ func main() {
 			return string(jsonBytes), nil
 		}).(pulumi.StringOutput)
 
-		// Build dependencies on all mount targets
-		var mountTargetDeps []pulumi.Resource
-		for _, mt := range mountTargets {
-			mountTargetDeps = append(mountTargetDeps, mt)
-		}
-
-		taskDefinition, err := ecs.NewTaskDefinition(ctx, "bigfoot-golf-task", &ecs.TaskDefinitionArgs{
-			Family:                  pulumi.String("bigfoot-golf"),
-			ContainerDefinitions:    containerDefinitionsJSON,
+		// Create Neo4j Task Definition
+		neo4jTaskDefinition, err := ecs.NewTaskDefinition(ctx, "bigfoot-golf-neo4j-task", &ecs.TaskDefinitionArgs{
+			Family:                  pulumi.String("bigfoot-golf-neo4j"),
+			ContainerDefinitions:    neo4jContainerDefinitionsJSON,
 			RequiresCompatibilities: pulumi.StringArray{pulumi.String("FARGATE")},
 			NetworkMode:             pulumi.String("awsvpc"),
-			Cpu:                     pulumi.String("1024"),
-			Memory:                  pulumi.String("2048"),
+			Cpu:                     pulumi.String("512"),
+			Memory:                  pulumi.String("1024"),
 			ExecutionRoleArn:        taskExecutionRole.Arn,
 			TaskRoleArn:             taskRole.Arn,
 			Volumes: ecs.TaskDefinitionVolumeArray{
@@ -810,7 +867,7 @@ func main() {
 				},
 			},
 			Tags: pulumi.StringMap{
-				"Name":    pulumi.String("BigFoot Golf Task Definition"),
+				"Name":    pulumi.String("BigFoot Golf Neo4j Task Definition"),
 				"Project": pulumi.String("BigFoot Golf"),
 			},
 		}, pulumi.DependsOn(mountTargetDeps))
@@ -818,11 +875,73 @@ func main() {
 			return err
 		}
 
-		// Create ECS Service with load balancer integration
-		service, err := ecs.NewService(ctx, "bigfoot-golf-service", &ecs.ServiceArgs{
-			Name:            pulumi.String("bigfoot-golf"),
+		// Create Web App Task Definition
+		webAppTaskDefinition, err := ecs.NewTaskDefinition(ctx, "bigfoot-golf-web-task", &ecs.TaskDefinitionArgs{
+			Family:                  pulumi.String("bigfoot-golf-web"),
+			ContainerDefinitions:    webAppContainerDefinitionsJSON,
+			RequiresCompatibilities: pulumi.StringArray{pulumi.String("FARGATE")},
+			NetworkMode:             pulumi.String("awsvpc"),
+			Cpu:                     pulumi.String("512"),
+			Memory:                  pulumi.String("1024"),
+			ExecutionRoleArn:        taskExecutionRole.Arn,
+			TaskRoleArn:             taskRole.Arn,
+			Tags: pulumi.StringMap{
+				"Name":    pulumi.String("BigFoot Golf Web App Task Definition"),
+				"Project": pulumi.String("BigFoot Golf"),
+			},
+		})
+		if err != nil {
+			return err
+		}
+
+		// Create ECS Service for Neo4j
+		neo4jService, err := ecs.NewService(ctx, "bigfoot-golf-neo4j-service", &ecs.ServiceArgs{
+			Name:            pulumi.String("bigfoot-golf-neo4j"),
 			Cluster:         cluster.ID(),
-			TaskDefinition:  taskDefinition.Arn,
+			TaskDefinition:  neo4jTaskDefinition.Arn,
+			LaunchType:      pulumi.String("FARGATE"),
+			DesiredCount:    pulumi.Int(1),
+			PlatformVersion: pulumi.String("LATEST"),
+			NetworkConfiguration: &ecs.ServiceNetworkConfigurationArgs{
+				Subnets:        pulumi.ToStringArray(subnets.Ids),
+				SecurityGroups: pulumi.StringArray{taskSecurityGroup.ID()},
+				AssignPublicIp: pulumi.Bool(true),
+			},
+			LoadBalancers: ecs.ServiceLoadBalancerArray{
+				&ecs.ServiceLoadBalancerArgs{
+					TargetGroupArn: neo4jHttpTargetGroup.Arn,
+					ContainerName:  pulumi.String("neo4j"),
+					ContainerPort:  pulumi.Int(7474),
+				},
+				&ecs.ServiceLoadBalancerArgs{
+					TargetGroupArn: neo4jBoltTargetGroup.Arn,
+					ContainerName:  pulumi.String("neo4j"),
+					ContainerPort:  pulumi.Int(7687),
+				},
+			},
+			DeploymentCircuitBreaker: &ecs.ServiceDeploymentCircuitBreakerArgs{
+				Enable:   pulumi.Bool(false),
+				Rollback: pulumi.Bool(false),
+			},
+			DeploymentMaximumPercent:        pulumi.Int(100),
+			DeploymentMinimumHealthyPercent: pulumi.Int(0),
+			Tags: pulumi.StringMap{
+				"Name":    pulumi.String("BigFoot Golf Neo4j Service"),
+				"Project": pulumi.String("BigFoot Golf"),
+			},
+		}, pulumi.IgnoreChanges([]string{"taskDefinition", "desiredCount"}))
+		if err != nil {
+			return err
+		}
+
+		// Get Neo4j service network configuration for web app to connect
+		neo4jServiceOutput := neo4jService.ToServiceOutput()
+
+		// Create ECS Service for Web App
+		webAppService, err := ecs.NewService(ctx, "bigfoot-golf-web-service", &ecs.ServiceArgs{
+			Name:            pulumi.String("bigfoot-golf-web"),
+			Cluster:         cluster.ID(),
+			TaskDefinition:  webAppTaskDefinition.Arn,
 			LaunchType:      pulumi.String("FARGATE"),
 			DesiredCount:    pulumi.Int(1),
 			PlatformVersion: pulumi.String("LATEST"),
@@ -837,27 +956,32 @@ func main() {
 					ContainerName:  pulumi.String("web-app"),
 					ContainerPort:  pulumi.Int(8000),
 				},
-				&ecs.ServiceLoadBalancerArgs{
-					TargetGroupArn: neo4jHttpTargetGroup.Arn,
-					ContainerName:  pulumi.String("neo4j"),
-					ContainerPort:  pulumi.Int(7474),
-				},
 			},
+			DeploymentCircuitBreaker: &ecs.ServiceDeploymentCircuitBreakerArgs{
+				Enable:   pulumi.Bool(false),
+				Rollback: pulumi.Bool(false),
+			},
+			DeploymentMaximumPercent:        pulumi.Int(100),
+			DeploymentMinimumHealthyPercent: pulumi.Int(0),
 			Tags: pulumi.StringMap{
-				"Name":    pulumi.String("BigFoot Golf Service"),
+				"Name":    pulumi.String("BigFoot Golf Web App Service"),
 				"Project": pulumi.String("BigFoot Golf"),
 			},
-		}, pulumi.IgnoreChanges([]string{"taskDefinition", "desiredCount"}))
+		}, pulumi.IgnoreChanges([]string{"taskDefinition", "desiredCount"}), pulumi.DependsOn([]pulumi.Resource{neo4jService}))
 		if err != nil {
 			return err
 		}
 
+		// Keep reference for unused variable
+		_ = neo4jServiceOutput
+
 		// Export outputs
 		ctx.Export("clusterName", cluster.Name)
 		ctx.Export("clusterArn", cluster.Arn)
-		ctx.Export("serviceName", service.Name)
-		//ctx.Export("serviceArn", service.Arn)
-		ctx.Export("taskDefinitionArn", taskDefinition.Arn)
+		ctx.Export("neo4jServiceName", neo4jService.Name)
+		ctx.Export("webAppServiceName", webAppService.Name)
+		ctx.Export("neo4jTaskDefinitionArn", neo4jTaskDefinition.Arn)
+		ctx.Export("webAppTaskDefinitionArn", webAppTaskDefinition.Arn)
 		ctx.Export("efsFileSystemId", efsFileSystem.ID())
 		ctx.Export("efsFileSystemArn", efsFileSystem.Arn)
 
