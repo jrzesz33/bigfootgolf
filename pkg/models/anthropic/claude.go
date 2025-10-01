@@ -25,13 +25,13 @@ type Tool struct {
 
 // ClaudeRequest represents the request payload to Claude API
 type ClaudeRequest struct {
-	Model         string    `json:"model"`
-	MaxTokens     int       `json:"max_tokens"`
-	Temperature   float64   `json:"temperature,omitempty"`
-	Messages      []Message `json:"messages"`
-	Tools         []Tool    `json:"tools,omitempty"`
-	ToolChoice    interface{} `json:"tool_choice,omitempty"`
-	System        string    `json:"system,omitempty"`
+	Model       string      `json:"model"`
+	MaxTokens   int         `json:"max_tokens"`
+	Temperature float64     `json:"temperature,omitempty"`
+	Messages    []Message   `json:"messages"`
+	Tools       []Tool      `json:"tools,omitempty"`
+	ToolChoice  interface{} `json:"tool_choice,omitempty"`
+	System      string      `json:"system,omitempty"`
 }
 
 // ClaudeResponse represents the response from Claude API
@@ -87,7 +87,11 @@ type ClaudeClient struct {
 }
 
 // NewClaudeClient creates a new Claude API client
-func NewClaudeClient(apiKey string) *ClaudeClient {
+func NewClaudeClient(request interface{}) *ClaudeClient {
+	var apiKey string
+	if cfg, ok := request.(string); ok {
+		apiKey = cfg
+	}
 	return &ClaudeClient{
 		APIKey:  apiKey,
 		BaseURL: "https://api.anthropic.com/v1",
@@ -190,12 +194,18 @@ func GetAvailableTools() []Tool {
 }
 
 // SendMessage sends a message to Claude API
-func (c *ClaudeClient) SendMessage(req ClaudeRequest) (*ClaudeResponse, error) {
+func (c *ClaudeClient) SendMessage(request interface{}) (*ClaudeResponse, error) {
+	var req ClaudeRequest
+	if claudeReq, ok := request.(ClaudeRequest); ok {
+		req = claudeReq
+	} else {
+		return nil, fmt.Errorf("incompatible message request")
+	}
 	jsonData, err := json.Marshal(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
-	
+
 	// Debug: Print request JSON
 	fmt.Printf("Claude API Request: %s\n", string(jsonData))
 

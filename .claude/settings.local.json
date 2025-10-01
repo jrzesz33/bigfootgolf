@@ -53,7 +53,8 @@
       "Bash(xargs -I {} find {} -name \"*.go\" -path \"*/aws/*\")",
       "Bash(pulumi up:*)",
       "Bash(pulumi stack output:*)",
-      "Bash(GOOS=js GOARCH=wasm go build -o web/app.wasm web/main.go)"
+      "Bash(GOOS=js GOARCH=wasm go build -o web/app.wasm web/main.go)",
+      "Bash(GOOS=js GOARCH=wasm go build -o web/app.wasm ./web/main.go)"
     ],
     "deny": [],
     "ask": []

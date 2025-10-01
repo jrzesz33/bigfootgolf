@@ -44,3 +44,40 @@ func GetChatHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(chatResponse)
 }
+
+// POST /api/chat/bedrock - Handle chat request with AWS Bedrock
+func GetBedrockChatHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var message anthropic.ChatRequest
+	if err := json.NewDecoder(r.Body).Decode(&message); err != nil {
+		response := models.Response{
+			Success: false,
+			Error:   "Invalid JSON in chat request",
+		}
+		sendJSONResponse(w, http.StatusBadRequest, response)
+		return
+	}
+
+	_bedrockClient := controllers.NewBigfootAgentController()
+
+	// Get user ID from header (set by authentication middleware)
+	userID := r.Header.Get("X-User-ID")
+	if userID != "" {
+		_bedrockClient.SetUserID(userID)
+	}
+
+	chatResponse, err := _bedrockClient.HandleChat(message)
+
+	if err != nil {
+		response := models.Response{
+			Success: false,
+			Error:   "Error processing chat request: " + err.Error(),
+		}
+		sendJSONResponse(w, http.StatusInternalServerError, response)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(chatResponse)
+}

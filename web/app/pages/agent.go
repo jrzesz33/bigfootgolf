@@ -39,15 +39,11 @@ func (a *Agent) OnMount(ctx app.Context) {
 }
 
 func (a *Agent) Render() app.UI {
-	return app.Div().
-		Class("agent-container").
+	return app.Main().
+		Class("chat-main").
 		Body(
-			app.Main().
-				Class("chat-main").
-				Body(
-					a.renderChatContainer(),
-					a.renderInputArea(),
-				),
+			a.renderChatContainer(),
+			a.renderInputArea(),
 		)
 }
 
@@ -80,9 +76,9 @@ func (a *Agent) renderChatContainer() app.UI {
 										app.Div().
 											Class("typing-indicator").
 											Body(
-												app.Span().Text("●"),
-												app.Span().Text("●"),
-												app.Span().Text("●"),
+												app.Span().Text("."),
+												app.Span().Text("."),
+												app.Span().Text("."),
 											),
 									),
 							)
@@ -113,11 +109,10 @@ func (a *Agent) renderMessage(msg ChatMessage) app.UI {
 			app.Div().
 				Class("message-content").
 				Text(msg.Content),
-			a.renderQuickActions(msg),
 		)
 }
 
-func (a *Agent) renderQuickActions(msg ChatMessage) app.UI {
+func (a *Agent) RenderQuickActions(msg ChatMessage) app.UI {
 	// Only show quick actions for AI messages that suggest booking options
 	if msg.IsUser || a.isLoading {
 		return app.Text("")

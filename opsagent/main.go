@@ -827,7 +827,7 @@ func main() {
 					"healthCheck": map[string]interface{}{
 						"command": []string{
 							"CMD-SHELL",
-							"exit 0",
+							"wget --no-verbose --tries=1 --spider http://localhost:8000/ || exit 1",
 						},
 						"interval":    30,
 						"timeout":     35,

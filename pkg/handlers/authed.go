@@ -11,7 +11,8 @@ func RegisterAPIRoutes(router *mux.Router) {
 
 	authServer := auth.InitAuth()
 	// Authenticated routes
-	router.HandleFunc("/chat", authServer.AuthenticateMiddleware(false, GetChatHandler)).Methods("POST")
+	router.HandleFunc("/chat", authServer.AuthenticateMiddleware(false, GetBedrockChatHandler)).Methods("POST")
+	router.HandleFunc("/chat/bedrock", authServer.AuthenticateMiddleware(false, GetBedrockChatHandler)).Methods("POST")
 	router.HandleFunc("/userupdate", authServer.AuthenticateMiddleware(false, transactions.SaveUserHandler)).Methods("POST")
 	router.HandleFunc("/verifyreq", authServer.AuthenticateMiddleware(false, transactions.SendEmailCodeHandler)).Methods("POST")
 	router.HandleFunc("/verifyemailcode", authServer.AuthenticateMiddleware(false, transactions.VerifyCodeHandler)).Methods("POST")

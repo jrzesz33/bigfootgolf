@@ -10,7 +10,7 @@ go.work.sum
 webapp
 .env
 .claude/.fuse_*
-opsagent/boat-agent
+opsagent/aws
 opsagent/boat-local
 opsagent/opsagent
 opsagent/build/boat-agent
@@ -22,3 +22,4 @@ opsagent/bin/opsagent
 bin/web-server
 go.work.sum
 go.work.sum
+opsagent/awscliv2.zip
