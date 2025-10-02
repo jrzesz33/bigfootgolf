@@ -54,7 +54,8 @@
       "Bash(pulumi up:*)",
       "Bash(pulumi stack output:*)",
       "Bash(GOOS=js GOARCH=wasm go build -o web/app.wasm web/main.go)",
-      "Bash(GOOS=js GOARCH=wasm go build -o web/app.wasm ./web/main.go)"
+      "Bash(GOOS=js GOARCH=wasm go build -o web/app.wasm ./web/main.go)",
+      "mcp__pulumi__pulumi-resource-search"
     ],
     "deny": [],
     "ask": []

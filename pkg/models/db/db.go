@@ -41,6 +41,7 @@ func InitDB(ctx context.Context) {
 		dbPassword := os.Getenv("DB_ADMIN")
 		Instance = &Database{}
 		var err error
+		fmt.Println("Driver Connection: ", dbURI, dbPassword, dbUser)
 		Instance.Driver, err = neo4j.NewDriverWithContext(
 			dbURI,
 			neo4j.BasicAuth(dbUser, dbPassword, ""),

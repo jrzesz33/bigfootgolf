@@ -23,7 +23,7 @@ type BedrockClient struct {
 
 // BedrockRequest represents the request payload to AWS Bedrock API
 type BedrockRequest struct {
-	Model       string                 `json:"model"`
+	Model       string                 `json:"model,omitempty"`
 	Messages    []Message              `json:"messages"`
 	MaxTokens   int                    `json:"max_tokens"`
 	Temperature float64                `json:"temperature,omitempty"`
@@ -90,8 +90,9 @@ func (b *BedrockClient) SendMessage(request interface{}) (*ClaudeResponse, error
 	}
 	// Build the request body
 	requestBody := ClaudeRequest{
-		MaxTokens: req.MaxTokens,
-		Messages:  req.Messages,
+		MaxTokens:        req.MaxTokens,
+		Messages:         req.Messages,
+		AnthropicVersion: "bedrock-2023-05-31",
 	}
 
 	if req.Temperature > 0 {
@@ -116,11 +117,11 @@ func (b *BedrockClient) SendMessage(request interface{}) (*ClaudeResponse, error
 	}
 
 	// Debug: Print request JSON
-	fmt.Printf("Bedrock API Request: %s\n", string(jsonData))
+	//fmt.Printf("Bedrock API Request: %s\n", string(jsonData))
 
 	// Model ID for Claude 3.5 Sonnet
-	modelID := "anthropic.claude-sonnet-4-5-20250929-v1:0"
-
+	modelID := os.Getenv("LLM_MODEL")
+	//fmt.Println("Invoking Model with Bedrock ", modelID)
 	// Invoke the model
 	input := &bedrockruntime.InvokeModelInput{
 		ModelId:     aws.String(modelID),

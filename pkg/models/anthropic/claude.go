@@ -25,13 +25,14 @@ type Tool struct {
 
 // ClaudeRequest represents the request payload to Claude API
 type ClaudeRequest struct {
-	Model       string      `json:"model"`
-	MaxTokens   int         `json:"max_tokens"`
-	Temperature float64     `json:"temperature,omitempty"`
-	Messages    []Message   `json:"messages"`
-	Tools       []Tool      `json:"tools,omitempty"`
-	ToolChoice  interface{} `json:"tool_choice,omitempty"`
-	System      string      `json:"system,omitempty"`
+	Model            string      `json:"model,omitempty"`
+	MaxTokens        int         `json:"max_tokens"`
+	Temperature      float64     `json:"temperature,omitempty"`
+	Messages         []Message   `json:"messages"`
+	Tools            []Tool      `json:"tools,omitempty"`
+	ToolChoice       interface{} `json:"tool_choice,omitempty"`
+	System           string      `json:"system,omitempty"`
+	AnthropicVersion string      `json:"anthropic_version,omitempty"`
 }
 
 // ClaudeResponse represents the response from Claude API

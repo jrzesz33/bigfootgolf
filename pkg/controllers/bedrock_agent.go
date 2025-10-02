@@ -159,7 +159,7 @@ func (a *BigfootAgentController) HandleChat(message anthropic.ChatRequest) (*ant
 
 	// Prepare Bedrock request
 	bedrockReq := anthropic.BedrockRequest{
-		Model:       "anthropic.claude-sonnet-4-5-20250929-v1:0",
+		Model:       os.Getenv("LLM_MODEL"),
 		MaxTokens:   a.Request.MaxTokens,
 		Temperature: a.Request.Temperature,
 		Messages:    a.Request.ConversationHist,
