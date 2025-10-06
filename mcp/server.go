@@ -295,29 +295,38 @@ func (m *MCPServer) handleWeatherConditions(ctx context.Context, request mcp.Cal
 
 // HTTP Handler for MCP over HTTP with authentication
 func (m *MCPServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
-	// Extract and validate token
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		http.Error(w, "Authorization header required", http.StatusUnauthorized)
-		return
+	userid := ""
+	mode := os.Getenv("MODE")
+	fmt.Println("MCP MODE: ", mode)
+	if !strings.Contains(mode, "dev") {
+		// Extract and validate token
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader {
+			http.Error(w, "Invalid authorization format", http.StatusUnauthorized)
+			return
+		}
+
+		// Validate JWT token
+		token, err := jwt.ParseWithClaims(tokenString, &auth.Claims{}, func(token *jwt.Token) (interface{}, error) {
+			return auth.GetJWTSecret(), nil
+		})
+
+		if err != nil || !token.Valid {
+			http.Error(w, "Invalid token", http.StatusUnauthorized)
+			return
+		}
+
+		// Add user context from JWT claims
+		if claims, ok := token.Claims.(*auth.Claims); ok {
+			userid = claims.UserID
+		}
 	}
-
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	if tokenString == authHeader {
-		http.Error(w, "Invalid authorization format", http.StatusUnauthorized)
-		return
-	}
-
-	// Validate JWT token
-	token, err := jwt.ParseWithClaims(tokenString, &auth.Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return auth.GetJWTSecret(), nil
-	})
-
-	if err != nil || !token.Valid {
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
-		return
-	}
-
 	// Parse MCP request
 	var request struct {
 		Method string                 `json:"method"`
@@ -364,13 +373,10 @@ func (m *MCPServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
 		toolName, _ := request.Params["name"].(string)
 		arguments, _ := request.Params["arguments"].(map[string]interface{})
 
-		// Add user context from JWT claims
-		if claims, ok := token.Claims.(*auth.Claims); ok {
-			if arguments == nil {
-				arguments = make(map[string]interface{})
-			}
-			arguments["user_id"] = claims.UserID
+		if arguments == nil {
+			arguments = make(map[string]interface{})
 		}
+		arguments["user_id"] = userid
 
 		var result *mcp.CallToolResult
 
@@ -381,7 +387,7 @@ func (m *MCPServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
 				Arguments: arguments,
 			},
 		}
-
+		var err error
 		switch toolName {
 		case "manage_reservations":
 			result, err = m.handleReservations(r.Context(), toolRequest)
@@ -438,5 +444,23 @@ func StartMCPServer() {
 	log.Printf("MCP Server starting on port %s", port)
 	if err := http.ListenAndServe(":"+port, mcpServer.router); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
+	}
+}
+
+// StartStdioServer starts the MCP server in stdio mode for direct client integration
+func StartStdioServer() {
+	ctx := context.Background()
+
+	// Create MCP server
+	mcpServer := NewMCPServer()
+
+	// Initialize
+	if err := mcpServer.Initialize(ctx); err != nil {
+		log.Fatalf("Failed to initialize MCP server: %v", err)
+	}
+
+	// Start stdio transport
+	if err := server.ServeStdio(mcpServer.server); err != nil {
+		log.Fatalf("Failed to serve stdio: %v", err)
 	}
 }

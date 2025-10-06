@@ -1,8 +1,9 @@
 package pages
 
 import (
-	"bigfoot/golf/common/models/anthropic"
+	"bigfoot/golf/common/models"
 	"bigfoot/golf/web/app/clients"
+	"fmt"
 	"time"
 
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
@@ -14,7 +15,7 @@ type Agent struct {
 	messages       []ChatMessage
 	isLoading      bool
 	conversationID string
-	currentMessage anthropic.ChatRequest
+	currentMessage models.AgentChatRequest
 }
 
 type ChatMessage struct {
@@ -24,6 +25,7 @@ type ChatMessage struct {
 }
 
 func (a *Agent) OnMount(ctx app.Context) {
+
 	// Initialize with welcome message from BigfootAI
 	welcomeMsg := ChatMessage{
 		Content:   "What can I help you with today?",
@@ -31,8 +33,8 @@ func (a *Agent) OnMount(ctx app.Context) {
 		Timestamp: time.Now(),
 	}
 	a.messages = append(a.messages, welcomeMsg)
-	a.currentMessage = anthropic.ChatRequest{
-		ConversationHist: []anthropic.Message{},
+	a.currentMessage = models.AgentChatRequest{
+		ConversationHist: []models.Message{},
 		MaxTokens:        4096,
 		Temperature:      0.7,
 	}
@@ -57,7 +59,7 @@ func (a *Agent) renderChatContainer() app.UI {
 				Body(
 					app.Range(a.messages).Slice(func(i int) app.UI {
 						msg := a.messages[i]
-						return a.renderMessage(msg)
+						return a.renderMessage(msg, i)
 					}),
 					app.If(a.isLoading, func() app.UI {
 						return app.Div().
@@ -87,7 +89,7 @@ func (a *Agent) renderChatContainer() app.UI {
 		)
 }
 
-func (a *Agent) renderMessage(msg ChatMessage) app.UI {
+func (a *Agent) renderMessage(msg ChatMessage, msgIndex int) app.UI {
 	messageClass := "message ai-message"
 	sender := "BigfootAI: "
 
@@ -96,7 +98,7 @@ func (a *Agent) renderMessage(msg ChatMessage) app.UI {
 		sender = "John: " // This could be dynamic based on user data
 	}
 
-	return app.Div().
+	return app.Div().ID(fmt.Sprintf("message-%d", msgIndex+1)).
 		Class(messageClass).
 		Body(
 			app.Div().
@@ -155,21 +157,20 @@ func (a *Agent) renderInputArea() app.UI {
 					app.Textarea().
 						Class("message-input").
 						Placeholder("Type your message...").
+						ID("promptInput").
 						Rows(1).
 						Text(a.userInput).
 						AutoFocus(true).
-						OnChange(a.ValueTo(&a.userInput)).
-						OnKeyDown(a.onInputKeyDown),
+						OnChange(a.ValueTo(&a.userInput)),
 					app.Button().
 						Class("send-button").
-						Disabled(a.isLoading || a.userInput == "").
 						Text("Send").
 						OnClick(a.onSendClick),
 				),
 		)
 }
 
-func (a *Agent) onInputKeyDown(ctx app.Context, e app.Event) {
+func (a *Agent) OnInputKeyDown(ctx app.Context, e app.Event) {
 	if e.Get("key").String() == "Enter" && !e.Get("shiftKey").Bool() {
 		e.PreventDefault()
 		if !a.isLoading && a.userInput != "" {
@@ -179,7 +180,7 @@ func (a *Agent) onInputKeyDown(ctx app.Context, e app.Event) {
 }
 
 func (a *Agent) onSendClick(ctx app.Context, e app.Event) {
-	if !a.isLoading && a.userInput != "" {
+	if a.userInput != "" {
 		a.sendMessage(ctx)
 	}
 }
@@ -209,12 +210,16 @@ func (a *Agent) sendMessage(ctx app.Context) {
 
 	// Clear input and show loading
 	a.userInput = ""
+
+	_msgInput := app.Window().GetElementByID("promptInput") //ctx.JSSrc().Call("getElementByClass", "message-input")
+	_msgInput.Set("value", "")
+	_msgInput.Call("focus()")
 	a.isLoading = true
-	ctx.Update()
 
 	// Make API call
 	go func() {
 		ctx.Async(func() {
+			//fmt.Printf("\nCalling Agent with Conversation: %v\n", a.currentMessage.ConversationHist)
 			resp, err := clients.CallAgentProxy(a.currentMessage)
 
 			ctx.Dispatch(func(ctx app.Context) {
@@ -236,6 +241,7 @@ func (a *Agent) sendMessage(ctx app.Context) {
 					a.messages = append(a.messages, aiMsg)
 					a.conversationID = resp.ConversationID
 					a.currentMessage.ConversationHist = resp.ConversationHist
+					//fmt.Printf("\nUpdated Agent Conversation: %v\n", a.currentMessage.ConversationHist)
 				}
 
 				ctx.Update()
@@ -243,7 +249,14 @@ func (a *Agent) sendMessage(ctx app.Context) {
 				// Scroll to bottom after update
 				ctx.After(100*time.Millisecond, func(ctx app.Context) {
 					// Auto-scroll will happen due to CSS scroll-behavior: smooth
+					scrollBehavior := make(map[string]string)
+					scrollBehavior["behavior"] = "smooth"
+					scrollBehavior["block"] = "end"
+					scrollBehavior["inline"] = "nearest"
+					lastMsg := fmt.Sprintf("message-%d", len(resp.ConversationHist))
+					app.Window().GetElementByID(lastMsg).Call("scrollIntoView", scrollBehavior)
 				})
+
 			})
 		})
 	}()

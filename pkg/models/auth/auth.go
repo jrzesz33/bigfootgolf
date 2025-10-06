@@ -107,9 +107,9 @@ type OAuthConfig struct {
 	UserInfoURL  string `json:"userInfoURL"`
 }
 
-type reqKey int
+type contextKey string
 
-const key reqKey = iota
+const USERIDKEY contextKey = "userID"
 
 // JWT Claims
 type Claims struct {
@@ -381,13 +381,13 @@ func (s AuthServer) HandleRefreshToken(w http.ResponseWriter, r *http.Request) {
 // Helper functions
 
 func (s AuthServer) generateTokens(user account.User) (*AuthResponse, error) {
-	// Access token (15 minutes)
+	// Access token (24 hours for development, 15 minutes for production)
 	accessClaims := &Claims{
 		UserID: user.ID,
 		Email:  user.Email,
 		Elev:   user.IsAdmin,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(15 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}
@@ -623,7 +623,7 @@ func (s AuthServer) AuthenticateMiddleware(admin bool, next http.HandlerFunc) ht
 
 		// Add user ID to context
 		ctx := r.Context()
-		ctx = context.WithValue(ctx, key, claims.UserID)
+		ctx = context.WithValue(ctx, USERIDKEY, claims.UserID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 }

@@ -1,13 +1,13 @@
 package clients
 
 import (
-	"bigfoot/golf/common/models/anthropic"
+	"bigfoot/golf/common/models"
 	"encoding/json"
 	"fmt"
 )
 
 // CallAgentProxy sends a chat request to the agent proxy API endpoint
-func CallAgentProxy(request anthropic.ChatRequest) (*anthropic.ChatResponse, error) {
+func CallAgentProxy(request models.AgentChatRequest) (*models.AgentChatResponse, error) {
 	url := "./api/chat"
 	message, erz := json.Marshal(request)
 	if erz != nil {
@@ -18,7 +18,7 @@ func CallAgentProxy(request anthropic.ChatRequest) (*anthropic.ChatResponse, err
 		fmt.Println("Error with Proxy ", err)
 		return nil, err.BError
 	}
-	var chatResp anthropic.ChatResponse
+	var chatResp models.AgentChatResponse
 	erx := json.Unmarshal(resp, &chatResp)
 	if erx != nil {
 		return nil, erx

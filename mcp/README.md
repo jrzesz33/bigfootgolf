@@ -146,12 +146,20 @@ go run . -mode server
 ```bash
 curl -X POST http://localhost:8081/mcp \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTc1NzYxNTYxNDg0NzMzNTAwMCIsImVtYWlsIjoianJ6ZXN6QGdtYWlsLmNvbSIsImVsZXYiOnRydWUsImV4cCI6MTc1OTUwMjg0MywiaWF0IjoxNzU5NTAxOTQzfQ.hUASSKRt8aD57ENKN6ukKVOEY_zFU3RqQxzJWfB7m1I" \
   -d '{
-    "tool": "find_tee_times",
+    "tool": "get_conditions",
+    "params": {}
+  }'
+```
+```bash
+curl -X POST http://localhost:8081/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "method": "tools/call",
     "params": {
-      "date": "2024-09-10",
-      "players": 4
+      "name": "get_conditions",
+      "arguments": {}
     }
   }'
 ```

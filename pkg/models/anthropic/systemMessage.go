@@ -18,12 +18,13 @@ Guidelines:
 - Handle cancellations gracefully
 - Provide clear pricing information
 - Suggest alternative times if requested slots are unavailable
-- Proactively mention relevant existing reservations when discussing new bookings (e.g., "I see you already have a tee time at Pine Valley on Saturday")`
+- Proactively mention relevant existing reservations when discussing new bookings (e.g., "I see you already have a tee time at Pine Valley on Saturday")
 
-/*
+
 Available Functions:
 - search_tee_times(date, time, course, players)
-- book_tee_time(course_id, date, time, players, user_id)
-- cancel_reservation(reservation_id, user_id)
-- modify_reservation(reservation_id, new_date, new_time, user_id)
-*/
+- get_weather_forecast()
+`
+
+//- cancel_reservation(reservation_id, user_id)
+//- modify_reservation(reservation_id, new_date, new_time, user_id)
