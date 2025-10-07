@@ -57,7 +57,11 @@
       "Bash(GOOS=js GOARCH=wasm go build -o web/app.wasm ./web/main.go)",
       "mcp__pulumi__pulumi-resource-search",
       "Bash(lsof:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(go mod init:*)",
+      "Bash(go test:*)",
+      "Bash(timeout 2 go run .)",
+      "Bash(go mod edit:*)"
     ],
     "deny": [],
     "ask": []

@@ -1,214 +1,316 @@
-# MCP Server for Golf Booking Application
+# Golf Booking MCP Server
 
-This module implements a Model Context Protocol (MCP) server that provides AI agents with secure access to reservation management tools.
+A Model Context Protocol (MCP) server for golf tee time booking and weather forecasts, implemented with StreamableHTTP transport in Go.
 
 ## Features
 
-- **OAuth Authentication**: Secure token-based authentication for all MCP requests
-- **Reservation Management**: Get, book, and cancel golf tee time reservations
-- **Tee Time Discovery**: Find available tee times based on date, time range, and party size
-- **Weather & Conditions**: Get current weather forecasts and course conditions
+- **StreamableHTTP Transport**: HTTP-based MCP server with streamable responses
+- **Real Weather Data**: Fetches live weather forecasts from NOAA Weather API
+- **Real Tee Time Data**: Queries actual tee time availability from Neo4j database
+- **Database Integration**: Connects to Neo4j for tee time and booking data
+- **Health Monitoring**: Built-in health check and server info endpoints
+- **Comprehensive Testing**: Full unit test suite and integration test utilities
 
 ## Architecture
 
-The MCP server consists of three main components:
+- **Transport**: StreamableHTTP (via `github.com/mark3labs/mcp-go`)
+- **Tools**: Matches the functionality in `pkg/models/bigfoottools.go`
+- **Port**: 8081 (configurable via `PORT` environment variable)
 
-1. **MCP Server** (`server.go`): The main server that handles MCP protocol requests with OAuth authentication
-2. **Development Proxy** (`proxy.go`): A proxy server for local development that handles CORS and authentication
-3. **MCP Client** (`pkg/models/anthropic/mcp_integration.go`): Client library for the AI agent to communicate with the MCP server
+## Prerequisites
 
-## Setup
-
-### Prerequisites
-
-- Go 1.23.4 or higher
+- Go 1.21 or higher
 - Neo4j database running on `bolt://localhost:7687`
-- JWT secret configured via `JWT_SECRET` environment variable
+- Environment variables:
+  - `DB_URI`: Neo4j connection URI (default: `bolt://localhost:7687`)
+  - `DB_ADMIN`: Neo4j password
+  - `PORT`: Server port (default: 8081)
 
-### Installation
-
-1. Install dependencies:
-```bash
-cd /workspaces/golf_app
-go work sync
-```
-
-2. Set environment variables:
-```bash
-export JWT_SECRET="your-secret-key"
-export DB_ADMIN="your-neo4j-password"
-export ANTHROPIC_API_KEY="your-anthropic-api-key"
-```
-
-## Running the MCP Server
-
-### Production Mode
-
-Run the MCP server directly:
+## Installation
 
 ```bash
 cd mcp
-go run . -mode server
-# Or set environment variable
-MCP_MODE=server go run .
+go mod download
 ```
 
-The server will start on port 8081 (or the port specified by `MCP_PORT` environment variable).
+## Running the Server
 
-### Development Mode with Proxy
-
-For local development with CORS support:
+### Standard Mode
 
 ```bash
-cd mcp
-go run . -mode proxy
-# Or set environment variable
-MCP_MODE=proxy go run .
+go run .
 ```
 
-The proxy server will start on port 8082 (or the port specified by `PROXY_PORT` environment variable).
+### Custom Port
 
-## Integration with AI Agent
+```bash
+PORT=9000 go run .
+```
 
-The AI agent in the application can be configured to use the MCP server:
+## API Endpoints
 
-### Enable MCP in the Agent Controller
+### MCP Endpoint
 
-```go
-// In your handler that creates the agent
-agent := controllers.NewAgentController()
-err := agent.SetUserInfo(userID, userEmail, true) // true enables MCP
-if err != nil {
-    // Handle error
+- **URL**: `/mcp`
+- **Method**: POST
+- **Content-Type**: `application/json`
+- **Description**: Main MCP protocol endpoint for tool calls
+
+### Health Check
+
+- **URL**: `/health`
+- **Method**: GET
+- **Response**: `{"status":"healthy"}`
+
+### Server Info
+
+- **URL**: `/info`
+- **Method**: GET
+- **Response**: Server metadata including name, version, and available endpoints
+
+## Available Tools
+
+### 1. get_weather_forecast
+
+Get real-time weather forecast from NOAA Weather API for the golf course area.
+
+**Parameters:**
+- `days` (integer, optional): Number of days to forecast (1-7, default: 3)
+
+**Example Request:**
+```json
+{
+  "method": "tools/call",
+  "params": {
+    "name": "get_weather_forecast",
+    "arguments": {
+      "days": 5
+    }
+  }
 }
 ```
 
-### Development Configuration
+**Example Response:**
+```
+Golf course weather forecast:
+- This Afternoon: Partly Sunny, 72°F, 5 mph SW
+- Tonight: Partly Cloudy, 58°F, 5 mph S
+- Monday: Mostly Sunny, 75°F, 5 to 10 mph S
+- Monday Night: Partly Cloudy, 60°F, 5 mph S
 
-For local development, set the following environment variables:
-
-```bash
-# Enable MCP proxy for development
-export MCP_USE_PROXY=true
-export MCP_SERVER_URL=http://localhost:8082
-
-# Or connect directly to MCP server
-export MCP_USE_PROXY=false
-export MCP_SERVER_URL=http://localhost:8081
+Perfect for planning your golf outing!
 ```
 
-## Available MCP Tools
+**Data Source**: NOAA Weather API (weather.gov)
 
-### 1. manage_reservations
+### 2. get_available_tee_times
 
-Manage user reservations (get, book, cancel).
-
-**Parameters:**
-- `action` (required): "get", "book", or "cancel"
-- `user_id` (required): User ID
-- `reservation_id`: Required for cancel action
-- `tee_time`: ISO format datetime, required for book action
-- `players`: Number of players, required for book action
-
-### 2. find_tee_times
-
-Find available tee times.
+Get real tee time availability from Neo4j database for a specific date.
 
 **Parameters:**
-- `date` (required): Date in YYYY-MM-DD format
-- `time_range`: "morning", "midday", "afternoon", or "all"
-- `players`: Number of players
+- `date` (string, required): Date in YYYY-MM-DD format (e.g., "2024-01-15")
 
-### 3. get_conditions
+**Example Request:**
+```json
+{
+  "method": "tools/call",
+  "params": {
+    "name": "get_available_tee_times",
+    "arguments": {
+      "date": "2024-10-07"
+    }
+  }
+}
+```
 
-Get weather and course conditions.
+**Example Response:**
+```
+Available tee times for 2024-10-07:
+- 7:00 AM | Slot 1 | 2 spots available | $35.00 | Members
+- 7:15 AM | Slot 2 | 4 spots available | $35.00 | Public
+- 8:00 AM | Slot 5 | 3 spots available | $45.00 | Members
+- 9:30 AM | Slot 10 | 1 spots available | $45.00 | Public
+```
 
-**Parameters:**
-- `date`: Date in YYYY-MM-DD format (optional, defaults to today)
+**Data Source**: Neo4j database with real booking engine data
 
 ## Testing
 
-### Test the MCP Server
+### Run Unit Tests
 
-1. Start the MCP server:
 ```bash
-cd mcp
-go run . -mode server
+go test -v
 ```
 
-2. Generate a test token:
-```bash
-# Use the JWT helper to generate a token
-# You can create a test script or use the existing auth endpoints
+### Test with curl
+
+See [SESSION_TESTING.md](SESSION_TESTING.md) for detailed session testing guide.
+
+#### Quick Test (Stateless Mode)
+
+Enable stateless mode in `main.go` for easier testing:
+```go
+streamableServer := server.NewStreamableHTTPServer(
+    mcpServer.GetServer(),
+    server.WithEndpointPath("/mcp"),
+    server.WithStateLess(true), // Add this line
+)
 ```
 
-3. Test with curl:
-```bash
-curl -X POST http://localhost:8081/mcp \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMTc1NzYxNTYxNDg0NzMzNTAwMCIsImVtYWlsIjoianJ6ZXN6QGdtYWlsLmNvbSIsImVsZXYiOnRydWUsImV4cCI6MTc1OTUwMjg0MywiaWF0IjoxNzU5NTAxOTQzfQ.hUASSKRt8aD57ENKN6ukKVOEY_zFU3RqQxzJWfB7m1I" \
-  -d '{
-    "tool": "get_conditions",
-    "params": {}
-  }'
-```
+Then test directly:
 ```bash
 curl -X POST http://localhost:8081/mcp \
   -H "Content-Type: application/json" \
   -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
     "method": "tools/call",
     "params": {
-      "name": "get_conditions",
-      "arguments": {}
+      "name": "get_weather_forecast",
+      "arguments": {"days": 3}
     }
-  }'
+  }' | jq
 ```
 
-### Test with Development Proxy
+#### Test with Sessions (Stateful Mode)
 
-1. Start the proxy:
+Use the provided script:
 ```bash
-cd mcp
-go run . -mode proxy
+./test_session.sh
 ```
 
-2. Test without authentication (proxy handles dev tokens):
+Or manually with cookies:
 ```bash
-curl -X POST http://localhost:8082/proxy/mcp \
+# 1. Initialize session
+curl -c /tmp/mcp_cookies.txt -X POST http://localhost:8081/mcp \
   -H "Content-Type: application/json" \
-  -d '{
-    "tool": "get_conditions",
-    "params": {}
-  }'
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+
+# 2. Call tools using session
+curl -b /tmp/mcp_cookies.txt -X POST http://localhost:8081/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"get_weather_forecast","arguments":{"days":3}}}' | jq
 ```
 
-## Security Notes
+### Run Integration Tests
 
-- All MCP requests require valid JWT tokens
-- Tokens are validated against the auth server's secret
-- User permissions are enforced at the tool level
-- The development proxy should NEVER be used in production
+First, start the server in one terminal:
 
-## Troubleshooting
+```bash
+go run .
+```
 
-### Common Issues
+Then, in another terminal, run the integration test client:
 
-1. **Authentication failures**: Ensure JWT_SECRET is set correctly
-2. **Database connection errors**: Verify Neo4j is running and DB_ADMIN is set
-3. **CORS errors in development**: Use the proxy server with `-mode proxy`
-4. **Port conflicts**: Change ports using MCP_PORT and PROXY_PORT environment variables
+```bash
+go run test_main.go test_client.go
+```
 
-### Logging
+Or test against a custom server URL:
 
-The MCP server and proxy include detailed logging for debugging:
-- Request/response bodies are logged in development mode
-- Authentication failures are logged with details
-- Tool execution errors include stack traces
+```bash
+MCP_SERVER_URL=http://localhost:9000 go run test_main.go test_client.go
+```
 
-## Future Enhancements
+### Test Coverage
 
-- [ ] Add rate limiting for MCP requests
-- [ ] Implement request/response caching
-- [ ] Add metrics and monitoring
-- [ ] Support for additional golf-specific tools
-- [ ] WebSocket support for real-time updates
+```bash
+go test -cover
+```
+
+## Development
+
+### Project Structure
+
+```
+mcp/
+├── server.go              # MCP server implementation with tool handlers
+├── main.go                # HTTP server and endpoint setup
+├── server_test.go         # Unit tests for server and tools
+├── Makefile               # Build and test automation
+├── go.mod                 # Go module dependencies
+├── README.md              # Full documentation
+├── QUICKSTART.md          # Quick start guide
+├── SESSION_TESTING.md     # Detailed session testing guide
+├── examples/              # Example clients and integration tests
+│   ├── client.go          # Stateful client example
+│   ├── http_client.go     # HTTP utilities library
+│   ├── integration_test.go# Integration test example
+│   └── README.md          # Examples documentation
+└── scripts/               # Bash test scripts
+    ├── test_session.sh    # Session-based curl tests
+    ├── test_simple.sh     # Simple debugging script
+    └── README.md          # Scripts documentation
+```
+
+### Adding New Tools
+
+1. Define the tool schema in `registerTools()` method in `server.go`
+2. Implement the handler function (e.g., `handleToolName()`)
+3. Add unit tests in `server_test.go`
+4. Update this README with the new tool documentation
+
+### Example: Adding a New Tool
+
+```go
+// In server.go - registerTools()
+mcpServer.AddTool(mcp.Tool{
+    Name:        "your_tool_name",
+    Description: "Your tool description",
+    InputSchema: mcp.ToolInputSchema{
+        Type:     "object",
+        Required: []string{"param1"},
+        Properties: map[string]interface{}{
+            "param1": map[string]interface{}{
+                "type":        "string",
+                "description": "Parameter description",
+            },
+        },
+    },
+}, s.handleYourTool)
+
+// Implement handler
+func (s *MCPServer) handleYourTool(args map[string]interface{}) (*mcp.CallToolResult, error) {
+    // Extract parameters
+    param1, ok := args["param1"].(string)
+    if !ok {
+        return mcp.NewToolResultError("param1 is required"), nil
+    }
+
+    // Process and return result
+    result := processData(param1)
+    resultJSON, _ := json.Marshal(result)
+    return mcp.NewToolResultText(string(resultJSON)), nil
+}
+```
+
+## Integration with Main Application
+
+To integrate this MCP server with the main golf application, update `pkg/models/bigfoottools.go`:
+
+```go
+func GetBigfootTools(useMCP bool) []BigfootTool {
+    if useMCP {
+        // Connect to MCP server at http://localhost:8081/mcp
+        // Use MCP client to discover and call tools
+        return getMCPTools("http://localhost:8081/mcp")
+    }
+    // ... existing direct tools
+}
+```
+
+## Dependencies
+
+- `github.com/mark3labs/mcp-go` v0.39.1 - MCP protocol implementation
+
+## License
+
+Part of the Bigfoot Golf Application
+
+## Contributing
+
+When contributing, ensure:
+1. All tests pass (`go test -v`)
+2. Code follows Go conventions (`go fmt`, `go vet`)
+3. New features include unit tests
+4. README is updated with new functionality

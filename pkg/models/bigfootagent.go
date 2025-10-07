@@ -70,7 +70,7 @@ func NewGolfAgent() GolfAgent {
 		Temperature:      0.7,
 		AnthropicVersion: "bedrock-2023-05-31",
 		ToolChoice:       "auto",
-		Tools:            GetBigfootTools(), //anthropic.GetAvailableTools(),
+		Tools:            GetBigfootTools(false), //anthropic.GetAvailableTools(),
 	}
 	return ga
 }
