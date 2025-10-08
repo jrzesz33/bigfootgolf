@@ -1,3 +1,6 @@
+// Package models contains the core business logic and data structures for the
+// golf booking application. It includes AI agent capabilities, database models,
+// and integration with external services.
 package models
 
 import (
@@ -7,6 +10,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -16,9 +20,11 @@ type GolfAgent struct {
 	GatewayURL string
 	Model      string
 	ClaudeReq  AgentRequest
+	UseMCP     bool
 	//Tools        []anthropic.Tool
 	ToolChoice   map[string]string
 	ToolExecutor *anthropic.ToolExecutor
+	MCPClient    *StatefulClient
 }
 
 // ChatRequest represents the incoming request to our API
@@ -55,25 +61,65 @@ type AgentChatResponse struct {
 	} `json:"usage"`
 }
 
-const DEVGATEWAY_URL = "http://localhost:3000"
-
+// NewGolfAgent creates and initializes a new GolfAgent with LLM gateway configuration.
+// It loads the gateway URL and model from environment variables and sets up the
+// MCP client if enabled. The agent is configured with default parameters for
+// interacting with Claude AI models.
+//
+// Required environment variables:
+// - LLM_GATEWAY_URL: URL of the LLM gateway service
+// - LLM_MODEL: Model identifier to use (e.g., "claude-3-5-sonnet-20241022")
+// - MCP_GATEWAY_URL: URL of the MCP gateway (if UseMCP is true)
+//
+// Returns a configured GolfAgent ready to process user queries.
 func NewGolfAgent() GolfAgent {
 	var ga GolfAgent
-	ga.GatewayURL = os.Getenv("GATEWAY_URL")
+	//default to MCP Server
+	ga.UseMCP = true
+
+	ga.GatewayURL = os.Getenv("LLM_GATEWAY_URL")
 	if ga.GatewayURL == "" {
-		ga.GatewayURL = DEVGATEWAY_URL
+		log.Fatal("no gateway url")
 	}
 	ga.Model = os.Getenv("LLM_MODEL")
+
+	tools := GetBigfootTools()
+	if ga.UseMCP {
+		_mcpServer := os.Getenv("MCP_GATEWAY_URL")
+		ga.MCPClient = NewStatefulClient(_mcpServer)
+		tools, _ = ga.MCPClient.ListTools()
+	}
+
 	// Build the request body
 	ga.ClaudeReq = AgentRequest{
 		MaxTokens:        4096,
 		Temperature:      0.7,
 		AnthropicVersion: "bedrock-2023-05-31",
 		ToolChoice:       "auto",
-		Tools:            GetBigfootTools(false), //anthropic.GetAvailableTools(),
+		Tools:            tools, //anthropic.GetAvailableTools(),
 	}
 	return ga
 }
+
+// ExecuteTool executes a specific tool/function call for the given user.
+// It routes the tool call to the appropriate handler based on the method name
+// and returns the result as a JSON string.
+//
+// Parameters:
+//   - userId: The ID of the user making the request
+//   - method: The name of the tool to execute (e.g., "find_tee_times", "get_reservations")
+//   - input: Map of input parameters for the tool
+//
+// Returns the tool execution result as a JSON string, or an error if execution fails.
+func (g *GolfAgent) ExecuteTool(userId string, method string, input map[string]interface{}) (string, error) {
+	if g.UseMCP {
+		return g.MCPClient.CallMCPServer(method, input)
+	} else {
+		g.ToolExecutor = anthropic.NewToolExecutor(userId)
+		return g.ToolExecutor.ExecuteTool(method, input)
+	}
+}
+
 func (g *GolfAgent) SendWithMessage(userId string, prompt AgentChatRequest) (*AgentChatResponse, error) {
 
 	// Prepare response
@@ -107,8 +153,8 @@ func (g *GolfAgent) SendWithMessage(userId string, prompt AgentChatRequest) (*Ag
 				responseText += content.Message.Content
 				response.HasFunctionCall = false
 			case "tool_calls":
-				//initialize the Tool Executor
-				g.ToolExecutor = anthropic.NewToolExecutor(userId)
+				//remove initialize the Tool Executor
+				//g.ToolExecutor = anthropic.NewToolExecutor(userId)
 				response.HasFunctionCall = true
 				for _, toolCalls := range content.Message.ToolCalls {
 					//llmToolResponse +=
@@ -127,7 +173,7 @@ func (g *GolfAgent) SendWithMessage(userId string, prompt AgentChatRequest) (*Ag
 						continue
 					}
 
-					toolResult, err := g.ToolExecutor.ExecuteTool(toolCalls.Function.Name, args)
+					toolResult, err := g.ExecuteTool(userId, toolCalls.Function.Name, args) // g.ToolExecutor.ExecuteTool(toolCalls.Function.Name, args)
 					if err != nil {
 						toolResult = fmt.Sprintf("Error executing tool %s: %v", toolCalls.Function.Name, err)
 					}
@@ -168,7 +214,10 @@ func (g *GolfAgent) SendWithMessage(userId string, prompt AgentChatRequest) (*Ag
 			})
 			// Add tool results as user messages
 			for _, tr := range toolResults {
-				resultJSON, _ := json.Marshal(tr)
+				resultJSON, err := json.Marshal(tr)
+				if err != nil {
+					return "", fmt.Errorf("failed to marshal tool result: %w", err)
+				}
 				prompt.ConversationHist = append(prompt.ConversationHist, Message{
 					Role:    "user",
 					Content: string(resultJSON),

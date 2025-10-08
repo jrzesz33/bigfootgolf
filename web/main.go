@@ -7,6 +7,7 @@ import (
 	"bigfoot/golf/common/controllers"
 	"bigfoot/golf/common/handlers"
 	"bigfoot/golf/common/handlers/sessionmgr"
+	"bigfoot/golf/common/helper"
 	"bigfoot/golf/common/models/db"
 	"bigfoot/golf/web/app/routes"
 	"context"
@@ -30,10 +31,6 @@ func main() {
 	wasmHandler := &app.Handler{
 		Name:        "Golf Booking App",
 		Description: "A mobile-friendly golf tee time booking app",
-		//Icon: app.Icon{
-		//	Default: "/web/icon-192.png",
-		//},
-
 		Keywords: []string{
 			"golf",
 			"booking",
@@ -52,13 +49,22 @@ func main() {
 	}
 
 	//*************** Initialize Server Side Systems ********************************
-	loc, err := time.LoadLocation("America/New_York")
+
+	// Validate configuration before starting
+	log.Println("Validating configuration...")
+	if err := helper.ValidateConfig(); err != nil {
+		log.Fatalf("Configuration validation failed: %v", err)
+	}
+
+	// Set timezone from environment or use default
+	tzName := helper.GetEnvOrDefault("TZ", "America/New_York")
+	loc, err := time.LoadLocation(tzName)
 	if err != nil {
-		log.Fatalf("Error loading location: %v", err)
+		log.Fatalf("Error loading location %s: %v", tzName, err)
 	}
 	time.Local = loc // Set the global timezone
 	db.TimeLocation = loc
-	fmt.Println("Application timezone set to:", time.Local.String())
+	log.Printf("Application timezone set to: %s", time.Local.String())
 
 	//Initialize the Database
 	ctx := context.Background()
@@ -99,8 +105,11 @@ func main() {
 		controllers.SetupDevEnvironment()
 	}
 	// Start server
-	port := ":8000"
-	fmt.Printf("Server starting on port %s\n", port)
+	port := helper.GetEnvOrDefault("PORT", "8000")
+	if port[0] != ':' {
+		port = ":" + port
+	}
+	log.Printf("Server starting on port %s\n", port)
 
 	log.Fatal(http.ListenAndServe(port, r))
 }

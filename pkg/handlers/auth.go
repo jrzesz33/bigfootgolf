@@ -1,3 +1,12 @@
+// Package handlers provides HTTP request handlers for the golf booking application.
+// It registers all API routes and connects HTTP endpoints to business logic in the
+// models and controllers packages.
+//
+// The package is organized into several subrouters:
+// - /auth - Authentication endpoints (login, register, OAuth)
+// - /api - Authenticated user endpoints (profile, bookings, chat)
+// - /papi - Public endpoints (available tee times, course info)
+// - /admin - Administrative endpoints (seasons, settings, reservations)
 package handlers
 
 import (

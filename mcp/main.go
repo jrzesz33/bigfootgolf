@@ -54,18 +54,6 @@ func main() {
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
 
-	// Info endpoint
-	mux.HandleFunc("/info", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{
-			"name": "golf-booking-server",
-			"version": "1.0.0",
-			"description": "MCP server for golf tee time booking and weather forecasts",
-			"transport": "streamable-http",
-			"endpoint": "/mcp"
-		}`))
-	})
-
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("Starting MCP server on %s", addr)
 	log.Printf("MCP endpoint: http://localhost%s/mcp", addr)

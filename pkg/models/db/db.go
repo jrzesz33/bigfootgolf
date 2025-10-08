@@ -1,6 +1,14 @@
+// Package db provides Neo4j database connectivity and query utilities for the
+// golf booking application. It manages the database connection lifecycle,
+// provides CRUD operations for nodes and relationships, and handles data
+// serialization between Go structs and Neo4j graph structures.
+//
+// The package uses a singleton pattern for the database connection and provides
+// thread-safe access to the Neo4j driver.
 package db
 
 import (
+	"bigfoot/golf/common/helper"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -27,17 +35,28 @@ type DynamicNode struct {
 }
 
 var (
+	// Instance is the singleton database connection instance
 	Instance     *Database
 	once         sync.Once
+	// TimeLocation is the configured timezone for the application
 	TimeLocation *time.Location
 )
 
+// InitDB initializes the Neo4j database connection using environment variables.
+// It uses a singleton pattern to ensure only one connection is created.
+// The connection is verified before being made available.
+//
+// Required environment variables:
+// - DB_ADMIN: Neo4j admin password (required)
+// - DB_URI: Neo4j connection URI (defaults to bolt://localhost:7687)
+// - DB_USER: Neo4j username (defaults to neo4j)
+//
+// The function is safe to call multiple times - initialization only happens once.
 func InitDB(ctx context.Context) {
 
 	once.Do(func() {
-		//
-		dbURI := os.Getenv("DB_URI")
-		dbUser := "neo4j"
+		dbURI := helper.GetEnvOrDefault("DB_URI", helper.DefaultDBURI)
+		dbUser := helper.GetEnvOrDefault("DB_USER", helper.DefaultDBUser)
 		dbPassword := os.Getenv("DB_ADMIN")
 		Instance = &Database{}
 		var err error
@@ -46,9 +65,9 @@ func InitDB(ctx context.Context) {
 			dbURI,
 			neo4j.BasicAuth(dbUser, dbPassword, ""),
 			func(c *config.Config) {
-				// Optional: Configure connection pool settings
-				c.MaxConnectionPoolSize = 50
-				c.ConnectionAcquisitionTimeout = time.Second * 30 // seconds
+				// Configure connection pool settings
+				c.MaxConnectionPoolSize = helper.DefaultDBPoolSize
+				c.ConnectionAcquisitionTimeout = helper.DefaultHTTPTimeout
 			})
 
 		if err != nil {

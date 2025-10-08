@@ -61,7 +61,10 @@
       "Bash(go mod init:*)",
       "Bash(go test:*)",
       "Bash(timeout 2 go run .)",
-      "Bash(go mod edit:*)"
+      "Bash(go mod edit:*)",
+      "Bash(git rm:*)",
+      "Bash(./scripts/verify_cleanup.sh:*)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []

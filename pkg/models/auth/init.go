@@ -1,6 +1,15 @@
+// Package auth provides authentication and authorization services for the golf
+// booking application. It supports multiple authentication methods including:
+// - JWT token-based authentication for local accounts
+// - OAuth integration with Google and Apple
+// - Session management with secure cookie handling
+//
+// The package manages auth configuration persistence in Neo4j and provides
+// utilities for token generation, validation, and user authentication flows.
 package auth
 
 import (
+	"bigfoot/golf/common/helper"
 	"bigfoot/golf/common/models/db"
 	"crypto/rand"
 	"encoding/json"
@@ -77,25 +86,34 @@ func InitAuth() AuthServer {
 	if err != nil || config == nil {
 		//no local config so make one
 
-		// Generate JWT secret (in production, use environment variable)
-		jwtSecret := make([]byte, 32)
-		rand.Read(jwtSecret)
+		// Load JWT secret from environment variable
+		// If not set, generate a random one and warn the user
+		var jwtSecret []byte
+		jwtSecretEnv := os.Getenv("JWT_SECRET")
+		if jwtSecretEnv != "" {
+			jwtSecret = []byte(jwtSecretEnv)
+		} else {
+			// Generate random secret as fallback
+			jwtSecret = make([]byte, helper.JWTSecretLength)
+			rand.Read(jwtSecret)
+			log.Println("WARNING: JWT_SECRET not set in environment. Using randomly generated secret. All existing sessions will be invalidated on restart.")
+		}
 
 		// Initialize OAuth configs (replace with your actual credentials)
 		googleConfig := OAuthConfig{
 			ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 			ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
 			RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
-			TokenURL:     "https://oauth2.googleapis.com/token",
-			UserInfoURL:  "https://www.googleapis.com/oauth2/v2/userinfo",
+			TokenURL:     helper.GoogleTokenURL,
+			UserInfoURL:  helper.GoogleUserInfoURL,
 		}
 
 		appleConfig := OAuthConfig{
 			ClientID:     os.Getenv("APPLE_CLIENT_ID"),
 			ClientSecret: os.Getenv("APPLE_CLIENT_SECRET"),
 			RedirectURL:  os.Getenv("APPLE_REDIRECT_URL"),
-			TokenURL:     "https://appleid.apple.com/auth/token",
-			UserInfoURL:  "https://appleid.apple.com/auth/userinfo",
+			TokenURL:     helper.AppleTokenURL,
+			UserInfoURL:  helper.AppleUserInfoURL,
 		}
 		server := AuthServer{
 			jwtSecret:    jwtSecret,
@@ -107,7 +125,16 @@ func InitAuth() AuthServer {
 	}
 	server, err := config.GetServer()
 	if err != nil {
-		log.Fatal("error loading auth config")
+		log.Printf("ERROR: Failed to load auth config: %v. Creating new config...", err)
+		// Try to create new config instead of fatal error
+		jwtSecret := make([]byte, helper.JWTSecretLength)
+		rand.Read(jwtSecret)
+		server = AuthServer{
+			jwtSecret:    jwtSecret,
+			googleConfig: OAuthConfig{},
+			appleConfig:  OAuthConfig{},
+		}
+		_, _ = NewAuthConfig(server)
 	}
 	return server
 

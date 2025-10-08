@@ -1,16 +1,68 @@
+config:
+  tracing:
+    #http://localhost:4317
+    otlpEndpoint: https://app.phoenix.arize.com:4317
+    randomSampling: '1'
+    fields:
+      add:
+        span.name: '"bigfoot.chat"'
+        openinference.span.kind: '"LLM"'
+        llm.system: 'llm.provider'
+        llm.input_messages: 'flatten_recursive(llm.prompt.map(c, {"message": c}))'
+        llm.output_messages: 'flatten_recursive(llm.completion.map(c, {"role":"assistant", "content": c}))'
+        llm.token_count.completion: 'llm.outputTokens'
+        llm.token_count.prompt: 'llm.inputTokens'
+        llm.token_count.total: 'llm.totalTokens'
+        #Check these values
+        input.value: 'llm.prompt'                   
+        output.value: 'llm.completion'              
+        # Additional Token Details (if available)
+        #llm.token_count.prompt_details.cache_read: 'llm.cachedInputTokens'
+        #llm.token_count.prompt_details.cache_write: 'llm.cacheWriteTokens'
+        #llm.token_count.completion_details.reasoning: 'llm.reasoningTokens'
+        # Tool/Function Calls
+        #llm.tools: 'flatten_recursive(mcp.tools)'
+        #message.tool_calls: 'flatten_recursive(llm.toolCalls.map(...))'
+        tool.name: 'mcp.tool.name'
+        #tool.description: 'mcp.tool.description'
+        #tool.parameters: 'mcp.tool.parameters'
+        #tool_call.id: 'mcp.toolCall.id'
+        tool_call.function.name: 'mcp.resource.name'
+        #tool_call.function.arguments: 'mcp.toolCall.function.arguments'
+    headers: 
+      header: 'Authorization=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJBcGlLZXk6NiJ9.r1lD65GOSoHl9B_fQJaAfxmSN5bttTdZkbJ4iIJ6YPg'
 binds:
 - port: 3000
   listeners:
-  - routes:
+  - protocol: HTTP
+    name: bigfootmcp
+    hostname: localhost
+    routes:
     - policies:
         cors:
           allowOrigins:
-            - "*"
+          - "*"
           allowHeaders:
-            - "*"
+          - "*"
       backends:
       - mcp:
           targets:
           - name: mcp
             mcp:
               host: http://localhost:8081/mcp
+- port: 3001
+  listeners:
+  - protocol: HTTP
+    name: brock
+    hostname: localhost
+    routes:
+    - backends:
+      - ai:
+          name: bedrock
+          provider:
+            bedrock:
+              region: us-east-1
+              model: global.anthropic.claude-sonnet-4-5-20250929-v1:0
+      policies:
+        backendAuth:
+          key: bedrock-api-key-YmVkcm9jay5hbWF6b25hd3MuY29tLz9BY3Rpb249Q2FsbFdpdGhCZWFyZXJUb2tlbiZYLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFTSUE1WUFaSFdPUjJaTExQQ09FJTJGMjAyNTEwMDglMkZ1cy1lYXN0LTElMkZiZWRyb2NrJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNTEwMDhUMTgwMTQ5WiZYLUFtei1FeHBpcmVzPTQzMjAwJlgtQW16LVNlY3VyaXR5LVRva2VuPUlRb0piM0pwWjJsdVgyVmpFQ29hQ1hWekxXVmhjM1F0TVNKSU1FWUNJUUNFb28lMkY4NWtGbzNKMzFPJTJCJTJCenlVRmZQbmFOMGVlSUJFUDV0Q3lEWXQwUGxnSWhBTUs4dHdTUTJxMFJ5JTJGQ2ZXYW9zcnc3bmpHJTJCWkF0am1PRCUyRmJuUkt5cXVWeUtySURDTVAlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkZ3RVFBQm9NT1RRME9UUTFOek00TmpVNUlnenJHTk5hY2MlMkZ0NWJYYSUyQkhRcWhnUEU3NlNDOG9HVXhVZm50SE04UjRxYTglMkJEb3kzMzJlc3RXVUUwcThLNzBiaE9ObWcwUFlaRldaSlRiVW01Z3p0QUhPRWJCJTJCdzJvQXZwbVdrSnVnY0ZRYTQlMkJnbDA3aFduUGxHMGh5dzMlMkJkbnVoSlQweHZnTGZRa0JOa0dHVFd1dkZUY0p2JTJGNTJMNmUweEtFMlNxa0FXdUpQOSUyQnFuYURTRWZyOXZJSCUyRmF5R29RcGJ0eXJTWmlwemVOaXRMVGUxMHlmSVpreWNGUXZhaXVXNDlERjBUYmc5eGpKS3pwJTJGR1liRGslMkIyYTFXVmE2NFl5SEdQS0pZSFBVcFhXOTd3SVBTeEolMkJ0UzJaOGxWJTJCVmtkTFhXOUxGVTRiSUJqWFl2eFFlSFR1TmthMW9FSVJJU3pwbVBub0Z0QjVvWXNxRXBvJTJCeXExYkFsc2FmMHp4ZkpMRUhzeElWMlk4dUlCT214N1pIelZaSWNDM3oxeHFHWVVQZVNLeHFtZSUyRkhNVWl6TVVDSnhhSW04SXZHajRJMEhialpTJTJGVndza3d6dWNwREphQmphRUtRbElIUVBISzR3dWRJN09YUiUyRjk1VFJKMWVCNzltJTJGVzFVNXdLU0FEUERqVU1EaTVTNG5Eb3Vkck02NVNDTGxTZDA3UmElMkZJR1lNcE1xdGFPandlS0JMUjBsdXdOenVibVN0VSUyQlF1U3N3cHJ1YXh3WTYzUUslMkI4WmdpaFZqWHZBZnk4RGw3ckw2UzM3SVJKZm1GS3lEQ0dqWjMzVkZ0cEhBJTJGV3R4alN2cXF1cUI5cU5CV0NUOXM4UWN2ZWxEb3AwUmxlZUs0Sjd2TnJES0I4ZGg1Z1RYcjZzenhQOUQxcDZoUFBLNXd6NzhFTzhPd09iNFRJYnMlMkZZRlZYUWdhVlo4Zmw0aWhGRnFDdktCVGpDS1RrSHJEV0dxRlBKZ2RUa01heENMclVkNklseEdQJTJGTDczNElsY2dGb2pqWTkzSmU2bCUyQmhhalI4eTBSQVVPcjh1MDFBRmRKWlJlNVdxekxIY0MlMkIlMkZlVkE5UzdlSVR4aSUyRmNMZmdUSHRiaGMlMkJxRnY1NmR4Y0VxTkt3QSUyQmp2UTZjMm5FSndlN0pNVDlPSjdMS0N2SlNRODluYlFHZUNZTjhIMmVZejRWNVUlMkZSeWkyc0ZFJTJCRWRVdXVIdVh6NHNYNjhDY0RlQ2QwblhLWiUyRlFKb1RTZUtKOW1yVGU3S1BaOVM2UnQwbVBWJTJGbzYlMkZZM2M4UGRMdkJmMGI0U2twS1dLeSUyQlBPcW1jZlJSYXZvem9BMFJwWFolMkZLSElOang4RW5wYXhjTlNZSHBVUmZpaVZjUmElMkJUM283TkkxSHImWC1BbXotU2lnbmF0dXJlPWFhYjUyOWY1NTUxNzYwNzJlNDc3YzY0M2M1ZDUyY2IwOGM1ODAwNDAwYWMwMjEwNzYwYzNlMmQwMTc4NDFhY2MmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JlZlcnNpb249MQ==

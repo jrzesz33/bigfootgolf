@@ -66,85 +66,44 @@ type Usage struct {
 }
 
 // GetBigfootTools returns the tools/functions available to Claude
-func GetBigfootTools(useMCP bool) []BigfootTool {
-	if !useMCP {
-		return []BigfootTool{
-			{
-				Type: "function",
-				Function: BigfootFunction{
-					Name:        "get_weather_forecast",
-					Description: "Get weather forecast for golf course area",
-					Parameters: BigfootParameter{
-						Type: "object",
-						Properties: map[string]interface{}{
-							"days": map[string]interface{}{
-								"type":        "integer",
-								"description": "Number of days to forecast (1-7)",
-								"minimum":     1,
-								"maximum":     7,
-								"default":     3,
-							},
+func GetBigfootTools() []BigfootTool {
+
+	return []BigfootTool{
+		{
+			Type: "function",
+			Function: BigfootFunction{
+				Name:        "get_weather_forecast",
+				Description: "Get weather forecast for golf course area",
+				Parameters: BigfootParameter{
+					Type: "object",
+					Properties: map[string]interface{}{
+						"days": map[string]interface{}{
+							"type":        "integer",
+							"description": "Number of days to forecast (1-7)",
+							"minimum":     1,
+							"maximum":     7,
+							"default":     3,
 						},
 					},
 				},
 			},
-			{
-				Type: "function",
-				Function: BigfootFunction{
-					Name:        "get_available_tee_times",
-					Description: "Get available tee times for a specific date",
-					Parameters: BigfootParameter{
-						Type:     "object",
-						Required: []string{"date"},
-						Properties: map[string]interface{}{
-							"date": map[string]interface{}{
-								"type":        "string",
-								"description": "Date in YYYY-MM-DD format (e.g., 2024-01-15)",
-							},
+		},
+		{
+			Type: "function",
+			Function: BigfootFunction{
+				Name:        "get_available_tee_times",
+				Description: "Get available tee times for a specific date",
+				Parameters: BigfootParameter{
+					Type:     "object",
+					Required: []string{"date"},
+					Properties: map[string]interface{}{
+						"date": map[string]interface{}{
+							"type":        "string",
+							"description": "Date in YYYY-MM-DD format (e.g., 2024-01-15)",
 						},
 					},
 				},
 			},
-		}
-	} else {
-		//CLAUDE CODE CAN YOU FINISH THIS LOGIC TO CONNECT TO MY LOCAL MCP Server
-		return []BigfootTool{
-			{
-				Type: "function",
-				Function: BigfootFunction{
-					Name:        "get_weather_forecast",
-					Description: "Get weather forecast for golf course area",
-					Parameters: BigfootParameter{
-						Type: "object",
-						Properties: map[string]interface{}{
-							"days": map[string]interface{}{
-								"type":        "integer",
-								"description": "Number of days to forecast (1-7)",
-								"minimum":     1,
-								"maximum":     7,
-								"default":     3,
-							},
-						},
-					},
-				},
-			},
-			{
-				Type: "function",
-				Function: BigfootFunction{
-					Name:        "get_available_tee_times",
-					Description: "Get available tee times for a specific date",
-					Parameters: BigfootParameter{
-						Type:     "object",
-						Required: []string{"date"},
-						Properties: map[string]interface{}{
-							"date": map[string]interface{}{
-								"type":        "string",
-								"description": "Date in YYYY-MM-DD format (e.g., 2024-01-15)",
-							},
-						},
-					},
-				},
-			},
-		}
+		},
 	}
 }

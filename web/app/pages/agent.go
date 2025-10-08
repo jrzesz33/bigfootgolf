@@ -213,53 +213,54 @@ func (a *Agent) sendMessage(ctx app.Context) {
 
 	_msgInput := app.Window().GetElementByID("promptInput") //ctx.JSSrc().Call("getElementByClass", "message-input")
 	_msgInput.Set("value", "")
-	_msgInput.Call("focus()")
+	//_msgInput.Call("focus()")
 	a.isLoading = true
 
 	// Make API call
-	go func() {
-		ctx.Async(func() {
-			//fmt.Printf("\nCalling Agent with Conversation: %v\n", a.currentMessage.ConversationHist)
-			resp, err := clients.CallAgentProxy(a.currentMessage)
 
-			ctx.Dispatch(func(ctx app.Context) {
-				a.isLoading = false
+	ctx.Async(func() {
+		//fmt.Printf("\nCalling Agent with Conversation: %v\n", a.currentMessage.ConversationHist)
+		resp, err := clients.CallAgentProxy(a.currentMessage)
 
-				if err != nil {
-					errorMsg := ChatMessage{
-						Content:   "Sorry, I'm having trouble connecting right now. Please try again.",
-						IsUser:    false,
-						Timestamp: time.Now(),
-					}
-					a.messages = append(a.messages, errorMsg)
-				} else if resp != nil {
-					aiMsg := ChatMessage{
-						Content:   resp.Response,
-						IsUser:    false,
-						Timestamp: time.Now(),
-					}
-					a.messages = append(a.messages, aiMsg)
-					a.conversationID = resp.ConversationID
-					a.currentMessage.ConversationHist = resp.ConversationHist
-					//fmt.Printf("\nUpdated Agent Conversation: %v\n", a.currentMessage.ConversationHist)
+		ctx.Dispatch(func(ctx app.Context) {
+			a.isLoading = false
+
+			if err != nil {
+				errorMsg := ChatMessage{
+					Content:   "Sorry, I'm having trouble connecting right now. Please try again.",
+					IsUser:    false,
+					Timestamp: time.Now(),
 				}
+				a.messages = append(a.messages, errorMsg)
+			} else if resp != nil {
+				aiMsg := ChatMessage{
+					Content:   resp.Response,
+					IsUser:    false,
+					Timestamp: time.Now(),
+				}
+				a.messages = append(a.messages, aiMsg)
+				a.conversationID = resp.ConversationID
+				a.currentMessage.ConversationHist = resp.ConversationHist
+				//fmt.Printf("\nUpdated Agent Conversation: %v\n", a.currentMessage.ConversationHist)
+			}
 
-				ctx.Update()
+			ctx.Update()
 
-				// Scroll to bottom after update
-				ctx.After(100*time.Millisecond, func(ctx app.Context) {
-					// Auto-scroll will happen due to CSS scroll-behavior: smooth
-					scrollBehavior := make(map[string]string)
-					scrollBehavior["behavior"] = "smooth"
-					scrollBehavior["block"] = "end"
-					scrollBehavior["inline"] = "nearest"
-					lastMsg := fmt.Sprintf("message-%d", len(resp.ConversationHist))
-					app.Window().GetElementByID(lastMsg).Call("scrollIntoView", scrollBehavior)
-				})
+			// Scroll to bottom after update
+			//ctx.After(100*time.Millisecond, func(ctx app.Context) {
+			// Auto-scroll will happen due to CSS scroll-behavior: smooth
+			//scrollBehavior := make(map[string]string)
+			//scrollBehavior["behavior"] = "smooth"
+			//scrollBehavior["block"] = "end"
+			//scrollBehavior["inline"] = "nearest"
+			lastMsg := fmt.Sprintf("message-%d", len(resp.ConversationHist))
+			fmt.Println("Last Message: ", lastMsg)
+			//app.Window().GetElementByID(lastMsg).Call("scrollIntoView", scrollBehavior)
+			//})
 
-			})
 		})
-	}()
+	})
+
 }
 
 // Helper function to check if content contains time slots

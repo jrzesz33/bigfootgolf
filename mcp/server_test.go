@@ -61,7 +61,7 @@ func TestHandleGetWeatherForecast(t *testing.T) {
 					return
 				}
 
-				contentStr := getTextContent(result)
+				contentStr := getTestTextContent(result)
 				if contentStr == "" {
 					t.Error("expected weather forecast text, got empty string")
 				}
@@ -84,7 +84,7 @@ func TestHandleGetWeatherForecast(t *testing.T) {
 					return
 				}
 
-				contentStr := getTextContent(result)
+				contentStr := getTestTextContent(result)
 				if contentStr == "" {
 					t.Error("expected weather forecast text, got empty string")
 				}
@@ -126,7 +126,7 @@ func TestHandleGetWeatherForecast(t *testing.T) {
 				if !result.IsError {
 					t.Errorf("expected error result, got success")
 				}
-				contentStr := getTextContent(result)
+				contentStr := getTestTextContent(result)
 				if contentStr != tt.errorMsg {
 					t.Errorf("expected error message %q, got %q", tt.errorMsg, contentStr)
 				}
@@ -167,7 +167,7 @@ func TestHandleGetAvailableTeeTimes(t *testing.T) {
 					return
 				}
 
-				contentStr := getTextContent(result)
+				contentStr := getTestTextContent(result)
 				if contentStr == "" {
 					t.Error("expected tee times text, got empty string")
 				}
@@ -225,7 +225,7 @@ func TestHandleGetAvailableTeeTimes(t *testing.T) {
 				if !result.IsError {
 					t.Errorf("expected error result, got success")
 				}
-				contentStr := getTextContent(result)
+				contentStr := getTestTextContent(result)
 				if tt.errorMsg != "" && contentStr != tt.errorMsg {
 					// Check if error message contains expected text
 					if len(contentStr) < len(tt.errorMsg) || contentStr[:len(tt.errorMsg)] != tt.errorMsg {
@@ -242,7 +242,8 @@ func TestHandleGetAvailableTeeTimes(t *testing.T) {
 }
 
 // Helper function to extract text content from CallToolResult
-func getTextContent(result *mcp.CallToolResult) string {
+// Note: This function is also defined in openai_handler.go
+func getTestTextContent(result *mcp.CallToolResult) string {
 	if len(result.Content) == 0 {
 		return ""
 	}

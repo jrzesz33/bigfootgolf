@@ -4,10 +4,13 @@ A Model Context Protocol (MCP) server for golf tee time booking and weather fore
 
 ## Features
 
+- **Dual API Support**: Both MCP protocol and OpenAI-compatible endpoints
 - **StreamableHTTP Transport**: HTTP-based MCP server with streamable responses
+- **OpenAI Compatibility**: Standard OpenAI API format with tools support (`/v1/chat/completions`)
 - **Real Weather Data**: Fetches live weather forecasts from NOAA Weather API
 - **Real Tee Time Data**: Queries actual tee time availability from Neo4j database
 - **Database Integration**: Connects to Neo4j for tee time and booking data
+- **Stateful & Stateless**: MCP protocol (stateful) and OpenAI API (stateless)
 - **Health Monitoring**: Built-in health check and server info endpoints
 - **Comprehensive Testing**: Full unit test suite and integration test utilities
 
@@ -49,12 +52,33 @@ PORT=9000 go run .
 
 ## API Endpoints
 
-### MCP Endpoint
+### MCP Endpoint (Native Protocol)
 
 - **URL**: `/mcp`
 - **Method**: POST
 - **Content-Type**: `application/json`
 - **Description**: Main MCP protocol endpoint for tool calls
+- **Requires**: Session management (stateful mode)
+
+### OpenAI-Compatible Endpoint 🆕
+
+- **URL**: `/v1/chat/completions`
+- **Method**: POST
+- **Content-Type**: `application/json`
+- **Description**: OpenAI-compatible chat completion endpoint
+- **Format**: Standard OpenAI API format with tools support
+- **Stateless**: No session management required
+
+Example:
+```bash
+curl -X POST http://localhost:8081/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [{"role": "user", "content": "get_weather_forecast"}],
+    "tools": []
+  }'
+```
 
 ### Health Check
 
