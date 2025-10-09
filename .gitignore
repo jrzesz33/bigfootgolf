@@ -40,3 +40,5 @@ coverage.out
 # Temporary files
 tmp/
 .claude/.fuse_*
+go.work.sum
+.env.example
