@@ -16,8 +16,12 @@ func GetSeasons(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(_seas) == 0 {
+		var err error
 		//no seasons loaded so Init a new Season
-		_seas = teetimes.InitNewSeason(time.Now().Year())
+		_seas, err = teetimes.InitNewSeason(time.Now().Year())
+		if err != nil {
+			http.Error(w, "Error with Initializing Season", http.StatusInternalServerError)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

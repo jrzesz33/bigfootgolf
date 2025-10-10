@@ -1,7 +1,7 @@
 package pages
 
 import (
-	"bigfoot/golf/common/models/anthropic"
+	"bigfoot/golf/common/models"
 	"bigfoot/golf/web/app/clients"
 	"fmt"
 
@@ -12,8 +12,8 @@ type ChatAgent struct {
 	app.Compo
 	userMessage   string
 	agentMessage  string
-	agentResponse anthropic.ChatResponse
-	agentRequest  anthropic.ChatRequest
+	agentResponse models.AgentChatResponse
+	agentRequest  models.AgentChatRequest
 }
 
 func (h *ChatAgent) Render() app.UI {
@@ -60,18 +60,6 @@ func (h *ChatAgent) Render() app.UI {
 						Class("action-btn secondary").
 						Text("Chat").
 						OnClick(h.onChatClick),
-				),
-			app.Div().
-				Class("weather-widget").
-				Body(
-					app.H3().Text("Today's Weather"),
-					app.P().Text("Perfect golfing conditions!"),
-					app.Div().
-						Class("weather-info").
-						Body(
-							app.Span().Text("☀️ 75°F"),
-							app.Span().Text("💨 5mph winds"),
-						),
 				),
 		)
 }

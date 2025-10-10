@@ -1,18 +1,17 @@
 package handlers
 
 import (
-	"bigfoot/golf/common/controllers"
 	"bigfoot/golf/common/models"
-	"bigfoot/golf/common/models/anthropic"
+	"bigfoot/golf/common/models/auth"
 	"encoding/json"
 	"net/http"
 )
 
-// POST /api/chat - Handle chat request with Claude
+// POST /api/chat/bedrock - Handle chat request with AWS Bedrock
 func GetChatHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	var message anthropic.ChatRequest
+	var message models.AgentChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&message); err != nil {
 		response := models.Response{
 			Success: false,
@@ -22,15 +21,17 @@ func GetChatHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_claudeClient := controllers.NewAgentController()
+	chatAgent := models.NewGolfAgent()
 
 	// Get user ID from header (set by authentication middleware)
-	userID := r.Header.Get("X-User-ID")
-	if userID != "" {
-		_claudeClient.SetUserID(userID)
+	userID, _ := r.Context().Value(auth.USERIDKEY).(string)
+	if userID == "" {
+		//error no user id so return
+		sendJSONResponse(w, http.StatusInternalServerError, models.Response{Success: false, Error: "no user id found"})
+		return
 	}
 
-	chatResponse, err := _claudeClient.HandleChat(message)
+	chatResponse, err := chatAgent.SendWithMessage(userID, message)
 
 	if err != nil {
 		response := models.Response{

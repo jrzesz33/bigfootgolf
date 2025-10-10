@@ -13,9 +13,13 @@
 
 # Second stage: Runtime
 #FROM cgr.dev/chainguard/static:latest
-FROM cgr.dev/chainguard/glibc-dynamic
-WORKDIR /app
+FROM cgr.dev/chainguard/wolfi-base AS builder
+RUN apk add wget
 
+FROM cgr.dev/chainguard/go:latest
+
+WORKDIR /app
+COPY --from=builder /usr/bin/wget /usr/bin/wget
 # Copy the built binary from builder stage
 COPY ./webapp /app/webapp
 

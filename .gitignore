@@ -1,18 +1,44 @@
 /.DS_Store
 /.devcontainer
 /.vscode
+
+# Go workspace
 go.sum
-.claude/.fuse_hidden00000c2a00000011
+go.work.sum
+
+# Build artifacts
 web/main
+webapp
 mcp/mcp
 mcp/mcp_server
-go.work.sum
-webapp
-.env
-.claude/.fuse_*
-opsagent/boat-agent
+bin/web-server
+opsagent/aws
 opsagent/boat-local
 opsagent/opsagent
 opsagent/build/boat-agent
 opsagent/build/boat-local
 opsagent/build/boat-simulate
+opsagent/bin/ploomfoot
+opsagent/bin/opsagent
+opsagent/awscliv2.zip
+
+# Debug binaries
+**/__debug_bin*
+
+# WebAssembly builds
+**/*.wasm
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Test coverage
+coverage.out
+*.test
+
+# Temporary files
+tmp/
+.claude/.fuse_*
+go.work.sum
+.env.example

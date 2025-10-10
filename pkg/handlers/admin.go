@@ -13,4 +13,9 @@ func RegisterAdminRoutes(router *mux.Router) {
 	// Authenticated routes
 	router.HandleFunc("/seasons", authServer.AuthenticateMiddleware(true, admin.GetSeasons)).Methods("POST")
 
+	// Course management routes
+	router.HandleFunc("/courses/list", authServer.AuthenticateMiddleware(true, admin.GetCourses)).Methods("POST")
+	router.HandleFunc("/courses/save", authServer.AuthenticateMiddleware(true, admin.SaveCourse)).Methods("POST")
+	router.HandleFunc("/courses/toggle", authServer.AuthenticateMiddleware(true, admin.ToggleCourseActive)).Methods("POST")
+
 }

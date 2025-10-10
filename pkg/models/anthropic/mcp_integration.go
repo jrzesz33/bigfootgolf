@@ -39,7 +39,7 @@ func NewMCPClient(userID, userEmail string) (*MCPClient, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %v", err)
 	}
-	
+
 	// Check if we should use proxy for development
 	useProxy := os.Getenv("MCP_USE_PROXY") == "true"
 	baseURL := os.Getenv("MCP_SERVER_URL")
@@ -50,7 +50,7 @@ func NewMCPClient(userID, userEmail string) (*MCPClient, error) {
 			baseURL = "http://localhost:8081" // Direct MCP server
 		}
 	}
-	
+
 	return &MCPClient{
 		BaseURL:  baseURL,
 		Token:    token,
@@ -68,51 +68,51 @@ func (c *MCPClient) CallTool(toolName string, params map[string]interface{}) (*M
 		Tool:   toolName,
 		Params: params,
 	}
-	
+
 	jsonData, err := json.Marshal(toolCall)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal request: %v", err)
 	}
-	
+
 	// Create HTTP request
 	endpoint := c.BaseURL + "/mcp"
 	if c.UseProxy {
 		endpoint = c.BaseURL + "/proxy/mcp"
 	}
-	
+
 	req, err := http.NewRequest("POST", endpoint, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %v", err)
 	}
-	
+
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.Token)
-	
+
 	// Send request
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %v", err)
 	}
 	defer resp.Body.Close()
-	
+
 	// Read response
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %v", err)
 	}
-	
+
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("MCP server returned status %d: %s", resp.StatusCode, string(body))
 	}
-	
+
 	// Parse response
 	var mcpResp MCPResponse
 	if err := json.Unmarshal(body, &mcpResp); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %v", err)
 	}
-	
+
 	return &mcpResp, nil
 }
 
@@ -125,11 +125,11 @@ func (c *MCPClient) GetReservations(userID string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if !resp.Success {
 		return nil, fmt.Errorf("MCP error: %s", resp.Error)
 	}
-	
+
 	return resp.Result, nil
 }
 
@@ -144,11 +144,11 @@ func (c *MCPClient) BookReservation(userID, teeTime string, players int) (interf
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if !resp.Success {
 		return nil, fmt.Errorf("MCP error: %s", resp.Error)
 	}
-	
+
 	return resp.Result, nil
 }
 
@@ -162,11 +162,11 @@ func (c *MCPClient) CancelReservation(userID, reservationID string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	if !resp.Success {
 		return fmt.Errorf("MCP error: %s", resp.Error)
 	}
-	
+
 	return nil
 }
 
@@ -175,23 +175,23 @@ func (c *MCPClient) FindTeeTimes(date, timeRange string, players int) (interface
 	params := map[string]interface{}{
 		"date": date,
 	}
-	
+
 	if timeRange != "" {
 		params["time_range"] = timeRange
 	}
 	if players > 0 {
 		params["players"] = players
 	}
-	
+
 	resp, err := c.CallTool("find_tee_times", params)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if !resp.Success {
 		return nil, fmt.Errorf("MCP error: %s", resp.Error)
 	}
-	
+
 	return resp.Result, nil
 }
 
@@ -201,20 +201,20 @@ func (c *MCPClient) GetWeatherConditions(date string) (interface{}, error) {
 	if date != "" {
 		params["date"] = date
 	}
-	
+
 	resp, err := c.CallTool("get_conditions", params)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if !resp.Success {
 		return nil, fmt.Errorf("MCP error: %s", resp.Error)
 	}
-	
+
 	return resp.Result, nil
 }
 
-// IntegrateWithClaude adds MCP capabilities to Claude conversations
+/*/ IntegrateWithClaude adds MCP capabilities to Claude conversations
 func IntegrateMCPWithClaude(client *ClaudeClient, mcpClient *MCPClient, enableMCP bool) {
 	// This function would be called to enhance Claude with MCP tools
 	// The actual integration would happen in the chat handler
@@ -222,4 +222,4 @@ func IntegrateMCPWithClaude(client *ClaudeClient, mcpClient *MCPClient, enableMC
 		// Register MCP tools with Claude
 		// This would be done through the tools parameter in Claude requests
 	}
-}
+} */

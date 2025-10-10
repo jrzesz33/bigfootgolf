@@ -16,10 +16,20 @@ import (
 	"github.com/maxence-charriere/go-app/v10/pkg/app"
 )
 
+type Course struct {
+	ID         string   `json:"id"`
+	Name       string   `json:"name"`
+	TeeTimeURL string   `json:"teeTimeURL"`
+	Headers    []string `json:"headers"`
+	Params     []string `json:"params"`
+	Active     bool     `json:"active"`
+}
+
 type AvailTimes struct {
 	app.Compo
-	selectedDate time.Time
-	//playerCount  int
+	selectedDate   time.Time
+	selectedCourse string
+	courses        []Course
 	errorMsg       string
 	timeSlots      []teetimes.ReservedDay
 	reservSelected *teetimes.Reservation
@@ -31,29 +41,67 @@ type AvailTimes struct {
 func (p *AvailTimes) OnMount(ctx app.Context) {
 	p.selectedDate = time.Now().Local()
 	fmt.Println("Selected Date: ", p.selectedDate)
-	//call the web service
-	p.getTeeTimes()
 	p.players = 4
+	p.selectedCourse = "" // Default to BigFoot (empty string means default)
 
+	// Fetch available courses
+	p.fetchCourses()
+
+	// Load tee times
+	p.getTeeTimes()
+}
+
+func (p *AvailTimes) fetchCourses() {
+	resp, err := clients.SendGetReq("papi/courses")
+	if err == nil {
+		err := json.Unmarshal(resp, &p.courses)
+		if err != nil {
+			fmt.Println("Error unmarshaling courses:", err)
+		}
+	} else {
+		fmt.Println("Error fetching courses:", err)
+	}
 }
 
 func (p *AvailTimes) getTeeTimes() {
-	//call the web service
-	_mapData := make(map[string]interface{})
-	_mapData["start"] = p.selectedDate
+	// Clear existing time slots
+	p.timeSlots = nil
 
-	body, _ := json.Marshal(_mapData)
-	resp, err := clients.SendPostWithPayload("./papi/teetimes", string(body))
-	if err == nil {
-		//success populate the tee times
-		erc := json.Unmarshal(resp, &p.timeSlots)
-		if erc != nil {
-			fmt.Println(erc)
-			return
+	if p.selectedCourse == "" {
+		// Call the default BigFoot tee times endpoint
+		_mapData := make(map[string]interface{})
+		_mapData["start"] = p.selectedDate
+
+		body, _ := json.Marshal(_mapData)
+		resp, err := clients.SendPostWithPayload("./papi/teetimes", string(body))
+		if err == nil {
+			//success populate the tee times
+			erc := json.Unmarshal(resp, &p.timeSlots)
+			if erc != nil {
+				fmt.Println(erc)
+				return
+			}
+		} else {
+			fmt.Println(err)
 		}
-		//return &_usr, err
 	} else {
-		fmt.Println(err)
+		// Call the realtime tee times endpoint for the selected course
+		_mapData := make(map[string]interface{})
+		_mapData["courseId"] = p.selectedCourse
+		_mapData["searchDate"] = p.selectedDate.Format("2006-01-02")
+
+		body, _ := json.Marshal(_mapData)
+		resp, err := clients.SendPostWithPayload("./papi/realtime", string(body))
+		if err == nil {
+			//success populate the tee times
+			erc := json.Unmarshal(resp, &p.timeSlots)
+			if erc != nil {
+				fmt.Println("Error unmarshaling realtime tee times:", erc)
+				return
+			}
+		} else {
+			fmt.Println("Error fetching realtime tee times:", err)
+		}
 	}
 }
 
@@ -62,7 +110,10 @@ func (s *AvailTimes) Render() app.UI {
 		return s.renderPopup()
 	}
 	if len(s.timeSlots) == 0 {
-		return app.Div().Text("No Tee Times for " + s.selectedDate.Format("01/02/2006"))
+		return app.Div().Body(
+			s.renderCourseSelector(),
+			app.Div().Text("No Tee Times for " + s.selectedDate.Format("01/02/2006")),
+		)
 	}
 
 	x := 0
@@ -72,6 +123,7 @@ func (s *AvailTimes) Render() app.UI {
 	})
 	fmt.Println("days and slots ", len(s.timeSlots), " - ", len(s.timeSlots[0].Times))
 	_obj := app.Div().Body(
+		s.renderCourseSelector(),
 		app.Div().Class("fixedTeeHeader").Body(
 			app.If(s.selectedDate.After(time.Now().Truncate(24*time.Hour).Local().Add(time.Hour*24)), func() app.UI {
 				return app.Div().Class("fixedTeeBtn").Text("⬅️").OnClick(s.onDateBack)
@@ -238,4 +290,37 @@ func (s *AvailTimes) renderButtons() app.UI {
 		}),
 	)
 	return divOut
+}
+
+func (s *AvailTimes) renderCourseSelector() app.UI {
+	return app.Div().Class("course-selector").Body(
+		app.Label().For("course-dropdown").Text("Select Course:"),
+		app.Select().
+			ID("course-dropdown").
+			Class("course-dropdown").
+			OnChange(s.onCourseChange).
+			Body(
+				// Default BigFoot option
+				app.Option().
+					Value("").
+					Text("BigFoot Golf Club (Default)").
+					Selected(s.selectedCourse == ""),
+				// Dynamic course options
+				app.Range(s.courses).Slice(func(i int) app.UI {
+					course := s.courses[i]
+					return app.Option().
+						Value(course.ID).
+						Text(course.Name).
+						Selected(s.selectedCourse == course.ID)
+				}),
+			),
+	)
+}
+
+func (p *AvailTimes) onCourseChange(ctx app.Context, e app.Event) {
+	courseID := ctx.JSSrc().Get("value").String()
+	ctx.Dispatch(func(ctx app.Context) {
+		p.selectedCourse = courseID
+		p.getTeeTimes()
+	})
 }

@@ -1,442 +1,181 @@
 package main
 
 import (
-	"bigfoot/golf/common/models/auth"
-	"bigfoot/golf/common/models/db"
 	"bigfoot/golf/common/models/teetimes"
 	"bigfoot/golf/common/models/weather"
 	"context"
-	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	"github.com/gorilla/mux"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 )
 
+// MCPServer represents the golf booking MCP server
 type MCPServer struct {
 	server *server.MCPServer
-	router *mux.Router
 }
 
+// NewMCPServer creates a new MCP server instance with StreamableHTTP transport
 func NewMCPServer() *MCPServer {
-	return &MCPServer{
-		router: mux.NewRouter(),
-	}
-}
+	s := &MCPServer{}
 
-func (m *MCPServer) Initialize(ctx context.Context) error {
-	// Initialize database connection
-	loc, err := time.LoadLocation("America/New_York")
-	if err != nil {
-		return fmt.Errorf("error loading location: %v", err)
-	}
-	time.Local = loc
-	db.TimeLocation = loc
-
-	// Initialize DB
-	db.InitDB(ctx)
-
-	// Create MCP server with standard configuration
-	mcpServer := server.NewMCPServer("Golf Booking MCP Server", "1.0.0")
+	// Create MCP server with server info
+	mcpServer := server.NewMCPServer(
+		"golf-booking-server",
+		"1.0.0",
+	)
 
 	// Register tools
-	if err := m.registerTools(mcpServer); err != nil {
-		return fmt.Errorf("failed to register tools: %v", err)
-	}
+	s.registerTools(mcpServer)
 
-	m.server = mcpServer
-
-	return nil
+	s.server = mcpServer
+	return s
 }
 
-func (m *MCPServer) registerTools(s *server.MCPServer) error {
-	// Tool: Manage Reservations
-	s.AddTool(
-		mcp.Tool{
-			Name:        "manage_reservations",
-			Description: "Get, book, or cancel user reservations",
-			InputSchema: mcp.ToolInputSchema{
-				Type: "object",
-				Properties: map[string]interface{}{
-					"action": map[string]interface{}{
-						"type":        "string",
-						"enum":        []string{"get", "book", "cancel"},
-						"description": "Action to perform on reservations",
-					},
-					"user_id": map[string]interface{}{
-						"type":        "string",
-						"description": "User ID for the reservation",
-					},
-					"reservation_id": map[string]interface{}{
-						"type":        "string",
-						"description": "Reservation ID (required for cancel)",
-					},
-					"tee_time": map[string]interface{}{
-						"type":        "string",
-						"description": "Tee time to book (ISO format, required for book)",
-					},
-					"players": map[string]interface{}{
-						"type":        "integer",
-						"description": "Number of players (required for book)",
-					},
-				},
-				Required: []string{"action", "user_id"},
-			},
-		},
-		m.handleReservations,
-	)
-
-	// Tool: Find Tee Times
-	s.AddTool(
-		mcp.Tool{
-			Name:        "find_tee_times",
-			Description: "Find available tee times",
-			InputSchema: mcp.ToolInputSchema{
-				Type: "object",
-				Properties: map[string]interface{}{
-					"date": map[string]interface{}{
-						"type":        "string",
-						"description": "Date to search for tee times (YYYY-MM-DD)",
-					},
-					"time_range": map[string]interface{}{
-						"type":        "string",
-						"enum":        []string{"morning", "midday", "afternoon", "all"},
-						"description": "Preferred time range",
-					},
-					"players": map[string]interface{}{
-						"type":        "integer",
-						"description": "Number of players",
-					},
-				},
-				Required: []string{"date"},
-			},
-		},
-		m.handleFindTeeTimes,
-	)
-
-	// Tool: Get Weather/Conditions
-	s.AddTool(
-		mcp.Tool{
-			Name:        "get_conditions",
-			Description: "Get current weather and course conditions",
-			InputSchema: mcp.ToolInputSchema{
-				Type: "object",
-				Properties: map[string]interface{}{
-					"date": map[string]interface{}{
-						"type":        "string",
-						"description": "Date for weather forecast (YYYY-MM-DD)",
-					},
+// registerTools registers all available tools with the MCP server
+func (s *MCPServer) registerTools(mcpServer *server.MCPServer) {
+	// Register get_weather_forecast tool
+	mcpServer.AddTool(mcp.Tool{
+		Name:        "get_weather_forecast",
+		Description: "Get weather forecast for golf course area",
+		InputSchema: mcp.ToolInputSchema{
+			Type: "object",
+			Properties: map[string]interface{}{
+				"days": map[string]interface{}{
+					"type":        "integer",
+					"description": "Number of days to forecast (1-7)",
+					"minimum":     1,
+					"maximum":     7,
+					"default":     3,
 				},
 			},
 		},
-		m.handleWeatherConditions,
+	}, s.handleGetWeatherForecast)
+
+	// Register get_available_tee_times tool
+	mcpServer.AddTool(mcp.Tool{
+		Name:        "get_available_tee_times",
+		Description: "Get available tee times for a specific date",
+		InputSchema: mcp.ToolInputSchema{
+			Type:     "object",
+			Required: []string{"date"},
+			Properties: map[string]interface{}{
+				"date": map[string]interface{}{
+					"type":        "string",
+					"description": "Date in YYYY-MM-DD format (e.g., 2024-01-15)",
+				},
+			},
+		},
+	}, s.handleGetAvailableTeeTimes)
+}
+
+// handleGetWeatherForecast handles the get_weather_forecast tool call
+func (s *MCPServer) handleGetWeatherForecast(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Extract days parameter with default value of 3
+	days := request.GetInt("days", 3)
+
+	// Validate days range
+	if days < 1 || days > 7 {
+		return mcp.NewToolResultError("days must be between 1 and 7"), nil
+	}
+
+	// Use the existing weather handler
+	weatherHandler := weather.NewWeatherHandler(
+		"https://api.weather.gov/gridpoints/PBZ/77,65/forecast",
+		30*time.Minute,
 	)
 
-	return nil
+	weatherData, err := weatherHandler.GetWeatherData()
+	if err != nil {
+		// Fallback to basic forecast if weather API fails
+		var result strings.Builder
+		result.WriteString(fmt.Sprintf("Weather forecast for the next %d days:\n", days))
+
+		for i := 0; i < days; i++ {
+			date := time.Now().AddDate(0, 0, i)
+			result.WriteString(fmt.Sprintf("- %s: Check local weather services for conditions\n",
+				date.Format("January 2")))
+		}
+		return mcp.NewToolResultText(result.String()), nil
+	}
+
+	var result strings.Builder
+	result.WriteString("Golf course weather forecast:\n")
+
+	// Limit to requested number of days
+	periodsToShow := days * 2 // Day and night periods
+	if len(weatherData.Properties.Periods) < periodsToShow {
+		periodsToShow = len(weatherData.Properties.Periods)
+	}
+
+	for i := 0; i < periodsToShow && i < len(weatherData.Properties.Periods); i++ {
+		period := weatherData.Properties.Periods[i]
+		result.WriteString(fmt.Sprintf("- %s: %s, %d°%s, %s %s\n",
+			period.Name,
+			period.ShortForecast,
+			period.Temperature,
+			period.TemperatureUnit,
+			period.WindSpeed,
+			period.WindDirection,
+		))
+	}
+
+	result.WriteString("\nPerfect for planning your golf outing!")
+	return mcp.NewToolResultText(result.String()), nil
 }
 
-func (m *MCPServer) handleReservations(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-
-	arguments := request.Params.Arguments
-	var argMap map[string]any
-	if aMap, ok := arguments.(map[string]any); ok {
-		argMap = aMap
+// handleGetAvailableTeeTimes handles the get_available_tee_times tool call
+func (s *MCPServer) handleGetAvailableTeeTimes(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	// Extract date parameter
+	dateStr, err := request.RequireString("date")
+	if err != nil {
+		return mcp.NewToolResultError("date parameter is required and must be a string"), nil
 	}
-	action, _ := argMap["action"].(string)
-	userID, _ := argMap["user_id"].(string)
 
-	switch action {
-	case "get":
-		reservations, err := teetimes.GetUserReservationsForMCP(userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get reservations: %v", err)
-		}
-
-		content, _ := json.Marshal(reservations)
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				mcp.TextContent{
-					Type: "text",
-					Text: string(content),
-				},
-			},
-		}, nil
-
-	case "book":
-		teeTime, _ := argMap["tee_time"].(string)
-		players, _ := argMap["players"].(float64)
-
-		teeTimeDate, err := time.Parse(time.RFC3339, teeTime)
-		if err != nil {
-			return nil, fmt.Errorf("invalid tee time format: %v", err)
-		}
-
-		reservation, err := teetimes.CreateReservation(userID, teeTimeDate, int(players))
-		if err != nil {
-			return nil, fmt.Errorf("failed to book reservation: %v", err)
-		}
-
-		content, _ := json.Marshal(reservation)
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				mcp.TextContent{
-					Type: "text",
-					Text: string(content),
-				},
-			},
-		}, nil
-
-	case "cancel":
-		reservationID, _ := argMap["reservation_id"].(string)
-
-		err := teetimes.CancelReservation(userID, reservationID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to cancel reservation: %v", err)
-		}
-
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				mcp.TextContent{
-					Type: "text",
-					Text: "Reservation cancelled successfully",
-				},
-			},
-		}, nil
-
-	default:
-		return nil, fmt.Errorf("invalid action: %s", action)
-	}
-}
-
-func (m *MCPServer) handleFindTeeTimes(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := request.Params.Arguments
-	var arguments map[string]any
-	if aMap, ok := args.(map[string]any); ok {
-		arguments = aMap
-	}
-	dateStr, _ := arguments["date"].(string)
-	timeRange, _ := arguments["time_range"].(string)
-	players, _ := arguments["players"].(float64)
-
+	// Validate date format
 	date, err := time.Parse("2006-01-02", dateStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid date format: %v", err)
+		return mcp.NewToolResultError(fmt.Sprintf("invalid date format: %v. Use YYYY-MM-DD", err)), nil
 	}
 
-	availableTimes, err := teetimes.GetAvailableTeeTimes(date, timeRange, int(players))
+	// Use the existing booking engine to get tee times
+	var booking teetimes.BookingEngine
+	days, err := booking.GetDayTeeTimes(date)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get available tee times: %v", err)
+		return mcp.NewToolResultError(fmt.Sprintf("failed to get tee times: %v", err)), nil
 	}
 
-	content, _ := json.Marshal(availableTimes)
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			mcp.TextContent{
-				Type: "text",
-				Text: string(content),
-			},
-		},
-	}, nil
-}
-
-func (m *MCPServer) handleWeatherConditions(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	args := request.Params.Arguments
-	var arguments map[string]any
-	if aMap, ok := args.(map[string]any); ok {
-		arguments = aMap
+	if len(days) == 0 {
+		return mcp.NewToolResultText("No tee times available for " + dateStr), nil
 	}
 
-	dateStr, _ := arguments["date"].(string)
+	var result strings.Builder
+	result.WriteString(fmt.Sprintf("Available tee times for %s:\n", dateStr))
 
-	var date time.Time
-	var err error
-
-	if dateStr != "" {
-		date, err = time.Parse("2006-01-02", dateStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid date format: %v", err)
-		}
-	} else {
-		date = time.Now()
-	}
-
-	weatherData, err := weather.GetWeatherForecast(date)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get weather data: %v", err)
-	}
-
-	conditions, err := teetimes.GetCourseConditions()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get course conditions: %v", err)
-	}
-
-	result := map[string]interface{}{
-		"weather":    weatherData,
-		"conditions": conditions,
-	}
-
-	content, _ := json.Marshal(result)
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			mcp.TextContent{
-				Type: "text",
-				Text: string(content),
-			},
-		},
-	}, nil
-}
-
-// HTTP Handler for MCP over HTTP with authentication
-func (m *MCPServer) handleHTTP(w http.ResponseWriter, r *http.Request) {
-	// Extract and validate token
-	authHeader := r.Header.Get("Authorization")
-	if authHeader == "" {
-		http.Error(w, "Authorization header required", http.StatusUnauthorized)
-		return
-	}
-
-	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	if tokenString == authHeader {
-		http.Error(w, "Invalid authorization format", http.StatusUnauthorized)
-		return
-	}
-
-	// Validate JWT token
-	token, err := jwt.ParseWithClaims(tokenString, &auth.Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return auth.GetJWTSecret(), nil
-	})
-
-	if err != nil || !token.Valid {
-		http.Error(w, "Invalid token", http.StatusUnauthorized)
-		return
-	}
-
-	// Parse MCP request
-	var request struct {
-		Method string                 `json:"method"`
-		Params map[string]interface{} `json:"params"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "Invalid request format", http.StatusBadRequest)
-		return
-	}
-
-	// Handle based on method
-	var response interface{}
-
-	switch request.Method {
-	case "initialize":
-		response = map[string]interface{}{
-			"protocolVersion": "1.0",
-			"capabilities": map[string]interface{}{
-				"tools": map[string]interface{}{},
-			},
-		}
-
-	case "tools/list":
-		tools := []map[string]interface{}{}
-		// Add tool descriptions
-		tools = append(tools, map[string]interface{}{
-			"name":        "manage_reservations",
-			"description": "Get, book, or cancel user reservations",
-		})
-		tools = append(tools, map[string]interface{}{
-			"name":        "find_tee_times",
-			"description": "Find available tee times",
-		})
-		tools = append(tools, map[string]interface{}{
-			"name":        "get_conditions",
-			"description": "Get weather and course conditions",
-		})
-		response = map[string]interface{}{
-			"tools": tools,
-		}
-
-	case "tools/call":
-		toolName, _ := request.Params["name"].(string)
-		arguments, _ := request.Params["arguments"].(map[string]interface{})
-
-		// Add user context from JWT claims
-		if claims, ok := token.Claims.(*auth.Claims); ok {
-			if arguments == nil {
-				arguments = make(map[string]interface{})
+	for _, day := range days {
+		for _, slot := range day.Times {
+			if len(slot.Players) < 4 { // Only show available slots
+				result.WriteString(fmt.Sprintf("- %s | Slot %d | %d spots available | $%.2f | %s\n",
+					slot.TeeTime.Format("3:04 PM"),
+					slot.Slot,
+					4-len(slot.Players),
+					slot.Price,
+					slot.Group,
+				))
 			}
-			arguments["user_id"] = claims.UserID
 		}
-
-		var result *mcp.CallToolResult
-
-		// Create a CallToolRequest
-		toolRequest := mcp.CallToolRequest{
-			Params: mcp.CallToolParams{
-				Name:      toolName,
-				Arguments: arguments,
-			},
-		}
-
-		switch toolName {
-		case "manage_reservations":
-			result, err = m.handleReservations(r.Context(), toolRequest)
-		case "find_tee_times":
-			result, err = m.handleFindTeeTimes(r.Context(), toolRequest)
-		case "get_conditions":
-			result, err = m.handleWeatherConditions(r.Context(), toolRequest)
-		default:
-			err = fmt.Errorf("unknown tool: %s", toolName)
-		}
-
-		if err != nil {
-			response = map[string]interface{}{
-				"error": err.Error(),
-			}
-		} else {
-			response = result
-		}
-
-	default:
-		http.Error(w, "Unknown method", http.StatusBadRequest)
-		return
 	}
 
-	// Send response
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if result.Len() == len(fmt.Sprintf("Available tee times for %s:\n", dateStr)) {
+		return mcp.NewToolResultText("All tee times are fully booked for " + dateStr), nil
+	}
+
+	return mcp.NewToolResultText(result.String()), nil
 }
 
-func StartMCPServer() {
-	ctx := context.Background()
-
-	// Create MCP server
-	mcpServer := NewMCPServer()
-
-	// Initialize
-	if err := mcpServer.Initialize(ctx); err != nil {
-		log.Fatalf("Failed to initialize MCP server: %v", err)
-	}
-
-	// Setup HTTP routes
-	mcpServer.router.HandleFunc("/mcp", mcpServer.handleHTTP).Methods("POST")
-	mcpServer.router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	}).Methods("GET")
-
-	// Start server
-	port := os.Getenv("MCP_PORT")
-	if port == "" {
-		port = "8081"
-	}
-
-	log.Printf("MCP Server starting on port %s", port)
-	if err := http.ListenAndServe(":"+port, mcpServer.router); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+// GetServer returns the underlying MCP server instance
+func (s *MCPServer) GetServer() *server.MCPServer {
+	return s.server
 }

@@ -173,17 +173,20 @@ func generateReservationID() string {
 func nodeToReservation(node interface{}) Reservation {
 	// Implementation would convert Neo4j node to Reservation struct
 	// This is a placeholder
+	fmt.Println(node)
 	return Reservation{}
 }
 
-func nodeToSeason(node interface{}) *Season {
+func NodeToSeason(node interface{}) *Season {
 	// Implementation would convert Neo4j node to Season struct
 	// This is a placeholder
+	fmt.Println(node)
 	return &Season{}
 }
 
 func nodeToReservationBlock(node interface{}) ReservationBlock {
 	// Implementation would convert Neo4j node to ReservationBlock struct
 	// This is a placeholder
+	fmt.Println(node)
 	return ReservationBlock{}
 }

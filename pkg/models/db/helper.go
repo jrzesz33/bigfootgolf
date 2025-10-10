@@ -130,11 +130,10 @@ func (m *Database) QueryNodes(label string, filters map[string]interface{}) ([]m
 	return result.([]map[string]any), nil
 }
 
-// Helper functions from previous version
+// structToMap converts a struct to a map for Neo4j storage
 func structToMap(lbl string, obj interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
 	fmt.Println("structure for ", lbl)
-	//relationships := make(map[string][]string) //label and field names
 	v := reflect.ValueOf(obj)
 	t := reflect.TypeOf(obj)
 
@@ -168,17 +167,17 @@ func structToMap(lbl string, obj interface{}) map[string]interface{} {
 		switch _t.Kind() {
 		case reflect.Ptr:
 			elem := _t.Elem()
-			if strings.Contains(elem.PkgPath(), "birdsfoot") {
+			if strings.Contains(elem.PkgPath(), "bigfoot") {
 				continue
 			}
 		case reflect.Slice, reflect.Array:
 			elem := _t.Elem()
-			if strings.Contains(elem.PkgPath(), "birdsfoot") {
+			if strings.Contains(elem.PkgPath(), "bigfoot") {
 				continue
 			}
 		case reflect.Map:
 			elemType := _t.Elem()
-			if strings.Contains(elemType.PkgPath(), "birdsfoot") {
+			if strings.Contains(elemType.PkgPath(), "bigfoot") {
 				continue
 			}
 		}
@@ -208,7 +207,6 @@ func prepareProperties(props map[string]interface{}) map[string]interface{} {
 			jsonBytes, _ := json.Marshal(v)
 			cleaned[key] = string(jsonBytes)
 			fmt.Println("MAP FOUND IN SAVE: ", jsonBytes)
-			//continue
 		case nil:
 			continue
 		default:
@@ -225,22 +223,6 @@ func prepareProperties(props map[string]interface{}) map[string]interface{} {
 func assignLocation(myTime time.Time) time.Time {
 	return time.Date(myTime.Year(), myTime.Month(), myTime.Day(), myTime.Hour(), myTime.Minute(), myTime.Second(), 0, TimeLocation)
 }
-
-/*
-	func isArrayOfCustomStructs(obj interface{}) bool {
-		//v := reflect.ValueOf(obj)
-		t := reflect.TypeOf(obj)
-
-		// Check if it's a slice or array
-		if t.Kind() != reflect.Slice && t.Kind() != reflect.Array {
-			return false
-		}
-
-		// Check if the element type is a struct
-		elemType := t.Elem()
-		return strings.Contains(elemType.PkgPath(), "birdsfoot")
-	}
-*/
 
 func convertSlice(slice []interface{}) interface{} {
 	if len(slice) == 0 {

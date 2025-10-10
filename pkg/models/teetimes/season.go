@@ -15,13 +15,13 @@ type Season struct {
 	Name            string                      `yaml:"name" json:"name"`
 	BeginDate       time.Time                   `yaml:"beginDate" json:"beginDate"`
 	EndDate         time.Time                   `yaml:"endDate" json:"endDate"`
-	SolarTimes      *weather.ParsedSolarResults `yaml:"solarTimes" json:"solarTimes"`
+	SolarTimes      *weather.ParsedSolarResults //`yaml:"solarTimes" json:"solarTimes"`
 	FirstTeeTime    time.Time                   `yaml:"firstTeeTime" json:"firstTeeTime"`
 	LastTeeTime     time.Time                   `yaml:"lastTeeTime" json:"lastTeeTime"`
 	Gap             time.Duration               `yaml:"gap" json:"gap"`
 	IsOpen          bool                        `yaml:"isOpen" json:"isOpen"`
-	DefaultSettings []DetailedBlockSettings     `yaml:"defaultSettings" json:"defaultSettings"`
-	OverideSettings []DetailedBlockSettings     `yaml:"overideSettings" json:"overideSettings"`
+	DefaultSettings []DetailedBlockSettings     // `yaml:"defaultSettings" json:"defaultSettings"`
+	OverideSettings []DetailedBlockSettings     // `yaml:"overideSettings" json:"overideSettings"`
 }
 
 func NewSeason(year int, name string, begin time.Time, end time.Time) Season {
@@ -90,7 +90,7 @@ func NewSeason(year int, name string, begin time.Time, end time.Time) Season {
 	return seas
 }
 
-func InitNewSeason(year int) []Season {
+func InitNewSeason(year int) ([]Season, error) {
 
 	var s []Season
 
@@ -100,12 +100,16 @@ func InitNewSeason(year int) []Season {
 		if dts[1].After(time.Now()) {
 			seas := NewSeason(year, season, dts[0], dts[1])
 			//reservationBlock := NewReservationBlock(seas)
-			seas.Save()
-			s = append(s, seas)
+			err := seas.Save()
+			if err != nil {
+				return nil, err
+			} else {
+				s = append(s, seas)
+			}
 		}
 	}
 
-	return s
+	return s, nil
 
 }
 func (s *Season) GetTimeDetails(_date time.Time, _time time.Time) *DetailedBlockSettings {
