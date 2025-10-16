@@ -103,7 +103,6 @@ This application will:
 4. **SESSION_KEY**: Authentication Key
 5. **GMAIL_USER**: jrzesz@gmail.com should be default
 6. **GMAIL_PASS**: Key for Email Access
-7. **ANTHROPIC_API_KEY**: Key for Anthropic API Key
 
 ## 🔧 **Backlog of Impovements**
 1. : Generated Password for the Database

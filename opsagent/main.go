@@ -766,8 +766,7 @@ func main() {
 			neo4jSecretArn := args[0].(string)
 			sessionSecretArn := args[1].(string)
 			gmailPassSecretArn := args[2].(string)
-			anthropicSecretArn := args[3].(string)
-			albDnsName := args[4].(string)
+			albDnsName := args[3].(string)
 
 			// Build the Neo4j Bolt URI using the ALB DNS name
 			neo4jBoltUri := fmt.Sprintf("bolt://%s:7687", albDnsName)
@@ -809,10 +808,6 @@ func main() {
 						{
 							"name":      "GMAIL_PASS",
 							"valueFrom": gmailPassSecretArn,
-						},
-						{
-							"name":      "ANTHROPIC_API_KEY",
-							"valueFrom": anthropicSecretArn,
 						},
 					},
 					"logConfiguration": map[string]interface{}{

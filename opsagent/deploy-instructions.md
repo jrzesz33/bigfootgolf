@@ -134,7 +134,6 @@ aws ecs update-service --cluster bigfoot-golf --service bigfoot-golf --desired-c
 - `GMAIL_USER`: Gmail username
 - `GMAIL_PASS`: Gmail password from Secrets Manager
 - `SESSION_KEY`: Session encryption key from Secrets Manager
-- `ANTHROPIC_API_KEY`: Anthropic API key from Secrets Manager
 
 ### AWS Resources Created
 

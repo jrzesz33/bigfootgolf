@@ -279,7 +279,7 @@ func getUserSystemMessage(userId string) string {
 
 	// Add tee time context and user reservations to system message
 	teeTimeContext := anthropic.GetTeeTimeContext()
-	systemMessage := fmt.Sprintf(anthropic.SystemMessage, userId, reservationsText) +
+	systemMessage := fmt.Sprintf(anthropic.SystemMessage, userId, reservationsText, time.Now().Format(time.RFC1123)) +
 		"\n\nCurrent Available Tee Times:\n" + teeTimeContext
 	return systemMessage
 }
