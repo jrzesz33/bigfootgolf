@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand/v2"
 	"net/http"
 	"net/url"
@@ -612,6 +613,7 @@ func (s AuthServer) AuthenticateMiddleware(admin bool, next http.HandlerFunc) ht
 		})
 
 		if err != nil || !token.Valid {
+			log.Println("Error with Auth... ", err)
 			http.Error(w, "Invalid token", http.StatusUnauthorized)
 			return
 		}

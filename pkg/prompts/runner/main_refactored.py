@@ -72,6 +72,9 @@ def run_evaluation_pipeline(
     try:
         token = generate_jwt_token(config)
         print(f"  Generated token for user: {config.auth.eval_user_id}")
+        print(f"  Token: {token}")
+        print(f"  Secret: {config.auth.jwt_secret}")
+                
     except Exception as e:
         print(f"  ERROR generating token: {e}")
         return

@@ -61,7 +61,7 @@ func (a *AuthConfig) GetServer() (AuthServer, error) {
 	srv.appleConfig = apple
 	srv.googleConfig = google
 
-	srv.jwtSecret = []byte(a.LocalJSec)
+	srv.jwtSecret = GetJWTSecret()
 	return srv, nil
 }
 func LoadLocalConfig() (*AuthConfig, error) {

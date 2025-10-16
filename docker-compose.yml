@@ -35,7 +35,8 @@ services:
       - LLM_GATEWAY_URL=${LLM_GATEWAY_URL}
       - MCP_GATEWAY_URL=${MCP_GATEWAY_URL}
       - JWT_SECRET=${JWT_SECRET}
-      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     #depends_on:
     #  neo4j:
     #    condition: service_healthy

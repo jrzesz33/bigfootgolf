@@ -4,10 +4,19 @@ FROM golang:1.23.4-alpine AS builder
 WORKDIR /src
 
 # Copy source code
-COPY ./web .
+COPY ./web ./web
+COPY ./pkg ./pkg
+COPY ./mcp ./mcp
+COPY ./opsagent ./opsagent
+
+# Copy the workspace file
+COPY go.work ./go.work
 
 # Download Files
+WORKDIR /src/web
 RUN go mod download
+
+# WORKDIR /src
 
 # Build the WASM Application
 RUN GOOS=js GOARCH=wasm go build -o public/app.wasm -buildvcs=false .
@@ -15,14 +24,15 @@ RUN GOOS=js GOARCH=wasm go build -o public/app.wasm -buildvcs=false .
 # Build the Go application from web/main.go
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /src/webapp ./main.go
 
-# Second stage: Runtime
-#FROM cgr.dev/chainguard/static:latest
-#FROM cgr.dev/chainguard/wolfi-base AS builder
+# ADD wget
 RUN apk add wget
 
+# BUILD SERVER IMAGE
 FROM cgr.dev/chainguard/go:latest
 
 WORKDIR /app
+
+# IF NEEDED ADD wget
 COPY --from=builder /usr/bin/wget /usr/bin/wget
 # Copy the built binary from builder stage
 COPY --from=builder /src/webapp /app/webapp

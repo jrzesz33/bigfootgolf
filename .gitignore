@@ -42,3 +42,4 @@ tmp/
 .claude/.fuse_*
 go.work.sum
 .env.example
+pkg/prompts/runner/=2.8.0
