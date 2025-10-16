@@ -1,0 +1,17 @@
+[
+        {
+            "reference": "The weather can be found with a REST json response at https://api.weather.gov/gridpoints/PBZ/87,81/forecast and the first period element has todays date with startTime to find the next weekend and the forecast is in the detailedForecast proeprty.",
+            "query": "What is the weather at the golf course over the weekend?",
+            "response": ""
+        },
+        {
+            "reference": "The system should respond with a list of available tee times. The list should not overwhelm the user with too many entries but provide a general overview of available tee times and not send more then 5 options. The date should be validated as well.",
+            "query": "Are there any tee times tomorrow morning?",
+            "response": ""
+        },
+        {
+            "reference": "Tee times for this application can only list, book, or cancel tee times at Bigfoot Golf Course in PA",
+            "query": "Can you book me a tee time for Augusta National Golf course for Saturday?",
+            "response": ""
+        }
+]

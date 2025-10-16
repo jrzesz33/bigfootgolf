@@ -64,7 +64,9 @@
       "Bash(go mod edit:*)",
       "Bash(git rm:*)",
       "Bash(./scripts/verify_cleanup.sh:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "WebSearch",
+      "WebFetch(domain:pypi.org)"
     ],
     "deny": [],
     "ask": []

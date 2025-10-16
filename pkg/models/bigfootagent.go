@@ -216,7 +216,8 @@ func (g *GolfAgent) SendWithMessage(userId string, prompt AgentChatRequest) (*Ag
 			for _, tr := range toolResults {
 				resultJSON, err := json.Marshal(tr)
 				if err != nil {
-					return "", fmt.Errorf("failed to marshal tool result: %w", err)
+
+					return nil, fmt.Errorf("failed to marshal tool result: %w", err)
 				}
 				prompt.ConversationHist = append(prompt.ConversationHist, Message{
 					Role:    "user",

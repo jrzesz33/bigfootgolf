@@ -32,22 +32,22 @@ func ValidateConfig() error {
 		"DB_ADMIN":   "Neo4j database admin password",
 		"JWT_SECRET": "JWT secret for token signing",
 	}
-
-	optional := map[string]string{
-		"DB_URI":             "Neo4j database URI (defaults to bolt://localhost:7687)",
-		"DB_USER":            "Neo4j username (defaults to neo4j)",
-		"LLM_GATEWAY_URL":    "LLM Gateway URL for AI features",
-		"LLM_MODEL":          "LLM model to use",
-		"MCP_GATEWAY_URL":    "MCP Gateway URL",
-		"MCP_SERVER_URL":     "MCP Server URL",
-		"SESSION_KEY":        "Session encryption key",
-		"GOOGLE_CLIENT_ID":   "Google OAuth client ID",
-		"APPLE_CLIENT_ID":    "Apple OAuth client ID",
-		"GMAIL_USER":         "Gmail SMTP user",
-		"PORT":               "Server port (defaults to 8000)",
-		"TZ":                 "Timezone (defaults to America/New_York)",
-	}
-
+	/*
+		optional := map[string]string{
+			"DB_URI":             "Neo4j database URI (defaults to bolt://localhost:7687)",
+			"DB_USER":            "Neo4j username (defaults to neo4j)",
+			"LLM_GATEWAY_URL":    "LLM Gateway URL for AI features",
+			"LLM_MODEL":          "LLM model to use",
+			"MCP_GATEWAY_URL":    "MCP Gateway URL",
+			"MCP_SERVER_URL":     "MCP Server URL",
+			"SESSION_KEY":        "Session encryption key",
+			"GOOGLE_CLIENT_ID":   "Google OAuth client ID",
+			"APPLE_CLIENT_ID":    "Apple OAuth client ID",
+			"GMAIL_USER":         "Gmail SMTP user",
+			"PORT":               "Server port (defaults to 8000)",
+			"TZ":                 "Timezone (defaults to America/New_York)",
+		}
+	*/
 	var missing []string
 	var warnings []string
 

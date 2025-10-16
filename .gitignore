@@ -21,7 +21,7 @@ opsagent/build/boat-simulate
 opsagent/bin/ploomfoot
 opsagent/bin/opsagent
 opsagent/awscliv2.zip
-
+pkg/prompts/prompts
 # Debug binaries
 **/__debug_bin*
 
