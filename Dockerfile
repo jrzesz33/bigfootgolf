@@ -12,7 +12,7 @@ COPY ./opsagent ./opsagent
 # Copy the workspace file
 COPY go.work ./go.work
 
-# Download Files
+# Download Files for Web Build
 WORKDIR /src/web
 RUN go mod download
 
@@ -24,11 +24,19 @@ RUN GOOS=js GOARCH=wasm go build -o public/app.wasm -buildvcs=false .
 # Build the Go application from web/main.go
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /src/webapp ./main.go
 
+# Build the MCP Server
+WORKDIR /src/mcp
+RUN go mod download
+
+# Build the Go application from mcp/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /src/mcpapp ./main.go
+
+
 # ADD wget
 RUN apk add wget
 
 # BUILD SERVER IMAGE
-FROM cgr.dev/chainguard/go:latest
+FROM cgr.dev/chainguard/go:latest AS webbuild
 
 WORKDIR /app
 
@@ -43,3 +51,17 @@ COPY --from=builder /src/web/public/ /app/public/
 EXPOSE 8000
 
 ENTRYPOINT ["/app/webapp"]
+
+# BUILD SERVER IMAGE
+FROM cgr.dev/chainguard/go:latest AS mcpbuild
+
+WORKDIR /app
+
+# IF NEEDED ADD wget
+COPY --from=builder /usr/bin/wget /usr/bin/wget
+# Copy the built binary from builder stage
+COPY --from=builder /src/mcpapp /app/mcpapp
+
+EXPOSE 8081
+
+ENTRYPOINT ["/app/mcpapp"]

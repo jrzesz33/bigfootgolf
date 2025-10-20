@@ -2,8 +2,8 @@
 services:
   neo4j:
     build:
-      context: .
-      dockerfile: Dockerfile.db
+      context: ./db
+      dockerfile: Dockerfile
     container_name: db1
     ports:
       - "7474:7474"  # HTTP (for browser access)
@@ -18,28 +18,76 @@ services:
   web-app:
     build:
       context: .
-      dockerfile: Dockerfile.webapp
+      dockerfile: Dockerfile
+      target: webbuild
     container_name: web-app
     ports:
       - "8000:8000"  # Adjust port based on your app
     environment:
       # Database connection using service name
       - DB_URI=bolt://neo4j:7687
-      - DB_ADMIN=${DB_ADMIN} 
+      - DB_ADMIN=${DB_ADMIN}
       - MODE=dev
-      - SESSION_KEY=${SESSION_KEY} 
-      - GMAIL_USER=${GMAIL_USER} 
-      - GMAIL_PASS=${GMAIL_PASS} 
+      - SESSION_KEY=${SESSION_KEY}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_PASS=${GMAIL_PASS}
       - DB_USER=${DB_USER}
       - MCP_MODE=${MCP_MODE}
-      - LLM_GATEWAY_URL=${LLM_GATEWAY_URL}
-      - MCP_GATEWAY_URL=${MCP_GATEWAY_URL}
+      - LLM_GATEWAY_URL=http://agentgateway:3001
+      - MCP_GATEWAY_URL=http://agentgateway:3000
       - JWT_SECRET=${JWT_SECRET}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     #depends_on:
     #  neo4j:
     #    condition: service_healthy
+    networks:
+      - app-network
+  mcp-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: mcpbuild
+    container_name: mcp-app
+    ports:
+      - "8081:8081"  # Adjust port based on your app
+    environment:
+      - DB_URI=bolt://neo4j:7687
+      - DB_ADMIN=${DB_ADMIN}
+      - MODE=dev
+      - SESSION_KEY=${SESSION_KEY}
+      - GMAIL_USER=${GMAIL_USER}
+      - GMAIL_PASS=${GMAIL_PASS}
+      - DB_USER=${DB_USER}
+      - MCP_MODE=${MCP_MODE}
+    networks:
+      - app-network
+  agentgateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: agentgateway
+    ports:
+      - "3000:3000"  # MCP endpoint
+      - "3001:3001"  # Bedrock AI endpoint
+      - "15000:15000"  # UI for Agent Gateway
+    environment:
+      - AWS_REGION=us-east-1
+      - MCP_HOST=http://mcp-app:8081
+      - LLM_MODEL=${LLM_MODEL}
+      - AWS_BEARER_TOKEN_BEDROCK=${AWS_BEARER_TOKEN_BEDROCK}
+      - ADMIN_ADDR=0.0.0.0:15000
+      - GWAY_HOST=agentgateway
+      - OTEL_ADDR=http://arizeai:4317
+    networks:
+      - app-network
+
+  arizeai:
+    image: arizephoenix/phoenix:latest
+    ports:
+      - "6006:6006" # Front End
+      - "4317:4317" # OLTP Port 
+    container_name: arizeai
     networks:
       - app-network
 

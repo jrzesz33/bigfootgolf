@@ -1,39 +1,15 @@
 config:
   tracing:
-    otlpEndpoint: https://localhost:4317
-    randomSampling: '1'
+    otlpEndpoint: http://arizeai:4317
+    randomSampling: false
     fields:
-      add:
-        span.name: '"bigfoot.chat"'
-        openinference.span.kind: '"LLM"'
-        llm.system: 'llm.provider'
-        llm.input_messages: 'flatten_recursive(llm.prompt.map(c, {"message": c}))'
-        llm.output_messages: 'flatten_recursive(llm.completion.map(c, {"role":"assistant", "content": c}))'
-        llm.token_count.completion: 'llm.outputTokens'
-        llm.token_count.prompt: 'llm.inputTokens'
-        llm.token_count.total: 'llm.totalTokens'
-        #Check these values
-        input.value: 'llm.prompt'                   
-        output.value: 'llm.completion'              
-        # Additional Token Details (if available)
-        #llm.token_count.prompt_details.cache_read: 'llm.cachedInputTokens'
-        #llm.token_count.prompt_details.cache_write: 'llm.cacheWriteTokens'
-        #llm.token_count.completion_details.reasoning: 'llm.reasoningTokens'
-        # Tool/Function Calls
-        #llm.tools: 'flatten_recursive(mcp.tools)'
-        #message.tool_calls: 'flatten_recursive(llm.toolCalls.map(...))'
-        tool.name: 'mcp.tool.name'
-        #tool.description: 'mcp.tool.description'
-        #tool.parameters: 'mcp.tool.parameters'
-        #tool_call.id: 'mcp.toolCall.id'
-        tool_call.function.name: 'mcp.resource.name'
-        #tool_call.function.arguments: 'mcp.toolCall.function.arguments'
+      add: {}
 binds:
 - port: 3000
   listeners:
   - protocol: HTTP
     name: bigfootmcp
-    hostname: localhost
+    hostname: ${GWAY_HOST}
     routes:
     - policies:
         cors:
@@ -46,12 +22,12 @@ binds:
           targets:
           - name: mcp
             mcp:
-              host: http://localhost:8081/mcp
+              host: ${MCP_HOST}
 - port: 3001
   listeners:
   - protocol: HTTP
     name: brock
-    hostname: localhost
+    hostname: ${GWAY_HOST}
     routes:
     - backends:
       - ai:
@@ -59,7 +35,7 @@ binds:
           provider:
             bedrock:
               region: us-east-1
-              model: global.anthropic.claude-sonnet-4-5-20250929-v1:0
+              model: ${LLM_MODEL}
       policies:
         backendAuth:
-          key: bedrock-api-key-YmVkcm9jay5hbWF6b25hd3MuY29tLz9BY3Rpb249Q2FsbFdpdGhCZWFyZXJUb2tlbiZYLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFTSUE1WUFaSFdPUllYSE9SNEhEJTJGMjAyNTEwMTMlMkZ1cy1lYXN0LTElMkZiZWRyb2NrJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNTEwMTNUMjAxNDAxWiZYLUFtei1FeHBpcmVzPTQzMjAwJlgtQW16LVNlY3VyaXR5LVRva2VuPUlRb0piM0pwWjJsdVgyVmpFS1glMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkYlMkZ3RWFDWFZ6TFdWaGMzUXRNU0pITUVVQ0lBR2xyTEMycE5yVTVCMFJBa2tKR0R3OW9BT0Fsb21JJTJGMmdlQXBvaUxUaFlBaUVBMmZNZyUyQmVTd3Z2SW5mbWF0TDYlMkJWUEVIVkU3SGV3OUdoVGNUa28lMkJEVDNhd3FxUU1JVFJBQUdndzVORFE1TkRVM016ZzJOVGtpRE55JTJGV1JHeVRWT2h3SiUyRmhNU3FHQSUyQnpURDNJVHJ4SFNPUzlLZmNFUlEwUmRFSkJaT2JmZ3kybTNlck02JTJCSjdaVnkxJTJCJTJCZnNQWE9NeDhXTDRSZ01OSWJQSEd3TnRtUllZaHBGZzdoWXI2NHlwZkRaY0VhWlp3ZThuUkI1Uk9VREJGcDF3dEFmYnN2N2h4T2MyWmpQVHJmNUVPREg0RHcwSmZnbHElMkJqV1hEWnpaTnpZQXolMkJlRyUyRmh6OEV2UEVVYXRSVGdUdFB6N3NXYThYSXlhS3NZMmNVNjNlMGVTYWlmb1lOMXAxbnZScDE2dEtzZ2FXQnk5S3BtWFJTSzJDQ2tEdmFLNktSWmYwR0E4VDJCOTMybmFqdjA1c0UydWRPYU1MSkM0bGklMkZ3OGE1NWU5NktPM2t0YWVWd1hpR3Z5eWVmNlFiYnQ0WmJWYTlxMFpHb3lhbHpHM0dVQUg2bXl2dnRrZFg3U2R4cXowdiUyQkZuVHRUdG84ckFJUDIwWjAlMkJOcWlKZFQ1RVVtYWpsZiUyQlJ4Sjh6JTJCSWNKQ1p2S28xb3RKSzNFQThTVGxwTlF4U2VEUUdBT2RrSEpuVmlsTkpVeG9oTUZNSTloSnN5V1VlYUpUdVBWekxqbm9FJTJCaXl1S3R5V3dWODl5S0JZSjNWaUhUbzZqaTRWdEFCVUx4elBwOG1JVnd0azglMkZyeCUyQk5CSVhwaDQ1T21POGJFWkVrY2pRaE1URDd1clhIQmpyZUFuJTJGRyUyQnVGZiUyQmlZdzVBZE1weGlTaGklMkJua1BFY3hvZllaWlBZRnJWSWJieENKJTJCRG9SMGFiS1dYUGtnJTJGTWhVc2ljck5JSHptZlByclVwYmJyaXhzRHRFeExRSGRlTzA2REFXS2Via0dtQmQlMkZ3U0Q1UmYxUnY1T2JzNVE0dTBLdTRPRnV1VUpiZU5Jd1dJY1Q1Tkc3a2plZHdKZzNERVpacDhaU1RCMlVoSG9rVjJNanlaTWc2SjVudVdzVHpXQlI2SjY4MmhtJTJCUGclMkJkVmd5UW9QeGFYb2IlMkJPdjZqY3djOFlMREpHVVY5VzlFSGRiS1NyS1Z1cnd4VlZyT2paa2hBeTBnWiUyQnNVSVdmNHp3ZjRLeUpUWVhtOGt0VnIxRGU3czBKb2VDamlkY3VDREtWTTZiMGVuJTJCNW5LdHRWanlndXVqVVhEU2FWYkRYZWQlMkZWVFVBNXgzR3pZOWhDSTNSTHNzbkZKRlFTUHRVNVRuJTJGTGhGM0kyZW9wOFZsQUZBUW56OHkycUtqWnFOQUpMRTRvSWtWdmpQSDNuOHc1ZmpZdSUyRiUyQmJlZUtSak9YWDhnOTRtOXh3aTNmNk5FcWtDYk9nTnpiNWFUaWlEb3ZVSXRKVHJWa1pMViUyQk4mWC1BbXotU2lnbmF0dXJlPTUyNWVlZjg5YWZhMGQyZTZlYTFjM2NmMjQwNWRlNWQ4NTVlZjE0NjNhMDMwOWFiZDY0MjkyMDM0MTIzNTNmOGQmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JlZlcnNpb249MQ==
+          key: ${AWS_BEARER_TOKEN_BEDROCK}

@@ -56,7 +56,7 @@ class AWSConfig:
             region=os.getenv("AWS_REGION", "us-east-1"),
             access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
             secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-            model_id=os.getenv("BEDROCK_MODEL_ID", "anthropic.claude-sonnet-4-5-20250929-v1:0")
+            model_id=os.getenv("EVAL_MODEL_ID", "global.amazon.nova-premier-v1:0")
         )
 
 
