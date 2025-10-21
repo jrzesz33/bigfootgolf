@@ -127,7 +127,8 @@ def call_chat_api(
     session = requests.Session()
     headers = {
         "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Accept": "application/json",
     }
     session.headers.update(headers)
 
@@ -145,7 +146,10 @@ def call_chat_api(
             print(f"    {key}: {value}")
     
     reqBody = {"message": query,
+               "max_tokens": 4096,
+               "temperature": 0.7,
                "conversation_history": [{
+                   "tool_calls": None, 
                    "role": "user",
                    "content": query
                }]

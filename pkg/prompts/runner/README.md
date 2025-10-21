@@ -1,332 +1,428 @@
-# Golf Agent Evaluation Runner
+# Golf Agent Evaluation Runner (Refactored)
 
-Python utility to execute Neo4j Cypher queries, make HTTP API calls, and run comprehensive agent evaluations using Phoenix and AWS Bedrock.
+Modular, extensible evaluation system for testing golf booking agent responses with support for multiple evaluators and dated output files.
 
-## Features
+## 🏗️ Architecture
 
-- **Neo4j Cypher Queries**: Execute queries against the golf booking Neo4j database
-- **HTTP API Calls**: Make GET/POST requests to various APIs (local golf API, weather API, MCP server)
-- **Agent Evaluation Pipeline**: Complete evaluation system with:
-  - Dataset loading from `golf_agent_dataframes.json`
-  - JWT token generation for authenticated API calls
-  - Automated chat API testing
-  - Hallucination detection using Phoenix Evals + AWS Bedrock
-  - Results logging to Phoenix observability platform
-- **Reusable Classes**: `Neo4jConnection` and `APIClient` classes for easy integration
+```
+runner/
+├── main_refactored.py       # Main entry point (refactored)
+├── config.py                 # Configuration management
+├── utils.py                  # Utility functions
+├── evals/                    # Evaluation modules
+│   ├── __init__.py
+│   ├── base.py              # Base evaluator class
+│   ├── hallucination.py     # Hallucination evaluator
+│   └── relevance.py         # Relevance evaluator (example)
+└── results/                  # Auto-generated dated results
+    ├── responses_2025-10-16_14-30-00.json
+    └── eval_results_2025-10-16_14-30-00.json
+```
 
-## Installation
+## 🚀 Features
+
+- **Modular Design**: Easy to add new evaluators
+- **Dated Output Files**: Results saved with timestamps
+- **Multiple Evaluators**: Run any combination of evaluators
+- **Extensible Base Class**: Simple inheritance model for custom evaluators
+- **CLI Interface**: Command-line arguments for flexibility
+- **Configuration Management**: Centralized config with validation
+
+## 📦 Installation
 
 ```bash
 cd pkg/prompts/runner
 pip install -r requirements.txt
 ```
 
-## Environment Variables
+## ⚙️ Configuration
 
-Create a `.env` file or set these environment variables (see `.env.example`):
+Set environment variables (see `.env.example`):
 
 ```bash
-# Required for Neo4j
+# Required
 export DB_ADMIN="your-neo4j-password"
-export DB_URI="bolt://localhost:7687"
-export DB_USER="neo4j"
-
-# Required for JWT token generation
 export JWT_SECRET="your-jwt-secret"
-
-# Required for AWS Bedrock evaluations
 export AWS_REGION="us-east-1"
-export AWS_ACCESS_KEY_ID="your-aws-access-key"
-export AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
 
 # Optional (with defaults)
-export MCP_ENDPOINT="http://localhost:8081"
-export PHOENIX_ENDPOINT="http://localhost:6006"
+export DB_URI="bolt://localhost:7687"
+export DB_USER="neo4j"
+export API_BASE_URL="http://localhost:8000"
+export BEDROCK_MODEL_ID="anthropic.claude-sonnet-4-5-20250929-v1:0"
 ```
 
-## Usage
+## 🎯 Usage
 
-### Run Agent Evaluation Pipeline
+### Run All Evaluators
 
 ```bash
-python main.py
+python main_refactored.py
 ```
 
-This will execute the complete evaluation pipeline:
+### Run Specific Evaluators
 
-1. **Load Dataset**: Reads test cases from `golf_agent_dataframes.json`
-2. **Generate JWT Token**: Creates authentication token with `user_id="eval-runner"`
-3. **Call Chat API**: Sends each query to `/api/chat` endpoint
-4. **Run Phoenix Evals**: Uses AWS Bedrock to evaluate responses for hallucinations
-5. **Log Results**: Saves results locally and logs to Phoenix
-
-### Output Files
-
-The evaluation pipeline generates these files in `/pkg/prompts/datasets/`:
-
-- `golf_agent_dataframes_with_responses.json` - Dataset with agent responses
-- `golf_agent_eval_results.json` - Complete evaluation results with scores
-
-### Example Output
-
-```
-================================================================================
-GOLF APP - CYPHER QUERY & API CALL RUNNER
-================================================================================
-
---- Query 1: Get All Users ---
-Found 5 users:
-  - {'user_id': '123', 'email': 'user@example.com', 'name': 'John Doe'}
-  ...
-
---- Query 2: Get Tee Times ---
-Found 10 tee times:
-  - {'tee_time_id': 'tt1', 'time': '08:00', 'spots': 4}
-  ...
-
---- API Call 1: Local Golf API (Public Tee Times) ---
-Response: {...}
-```
-
-## Code Examples
-
-### Using Neo4jConnection
-
-```python
-from main import Neo4jConnection
-
-conn = Neo4jConnection(
-    uri="bolt://localhost:7687",
-    user="neo4j",
-    password="your-password"
-)
-
-# Execute query
-query = "MATCH (u:User) RETURN u.email as email LIMIT 10"
-results = conn.execute_query(query)
-
-for record in results:
-    print(record['email'])
-
-conn.close()
-```
-
-### Using APIClient
-
-```python
-from main import APIClient
-
-# Create client with base URL
-api = APIClient(base_url="http://localhost:8000")
-
-# GET request
-tee_times = api.get("/papi/teetimes", params={"date": "2025-10-20"})
-print(tee_times)
-
-# POST request
-response = api.post("/api/endpoint", json_data={"key": "value"})
-print(response)
-```
-
-## Example Queries Included
-
-### 1. Get All Users
-```cypher
-MATCH (u:User)
-RETURN u.id, u.email, u.name
-LIMIT 5
-```
-
-### 2. Get Tee Times for Date
-```cypher
-MATCH (t:TeeTime)
-WHERE t.date = $date
-RETURN t.id, t.time, t.available_spots
-```
-
-### 3. Get User Reservations with Relationships
-```cypher
-MATCH (u:User)-[r:HAS_RESERVATION]->(res:Reservation)-[:FOR_TEE_TIME]->(t:TeeTime)
-RETURN u.email, res.id, t.date, t.time
-```
-
-### 4. Count Nodes by Label
-```cypher
-MATCH (n)
-RETURN labels(n)[0] as label, count(*) as count
-ORDER BY count DESC
-```
-
-## API Endpoints Tested
-
-1. **Local Golf API**: `http://localhost:8000/papi/teetimes`
-2. **Weather API**: `https://api.weather.gov`
-3. **MCP Server**: `http://localhost:8081/mcp`
-4. **POST Example**: `http://localhost:8000/api/chat`
-
-## Troubleshooting
-
-### Neo4j Connection Issues
-
-Ensure Neo4j is running:
 ```bash
-docker-compose up -d neo4j
+python main_refactored.py --evals hallucination,relevance
 ```
 
-Verify connection:
+### Use Custom Dataset
+
 ```bash
-echo $DB_ADMIN  # Should output your password
+python main_refactored.py --dataset my_custom_dataset.json
 ```
 
-### API Connection Issues
+### List Available Evaluators
 
-Ensure the golf app server is running:
 ```bash
-cd /workspaces/golf_app
-MODE=dev go run web/main.go
+python main_refactored.py --list-evals
 ```
 
-Ensure MCP server is running:
-```bash
-cd mcp
-go run . -mode server
-```
+## 📊 Output Files
 
-### Import Errors
+Results are automatically saved with timestamps in the `results/` directory:
 
-If you get import errors:
-```bash
-pip install --upgrade neo4j requests
-```
-
-## Evaluation Pipeline Details
-
-### 1. Dataset Structure
-
-The `golf_agent_dataframes.json` file contains test cases with:
+### Response Files
+Format: `responses_YYYY-MM-DD_HH-MM-SS.json`
 
 ```json
 [
   {
-    "reference": "Expected behavior or facts",
-    "query": "User question to test",
-    "response": "" // Filled in by the runner
+    "query": "What is the weather?",
+    "reference": "Expected behavior...",
+    "response": "Agent response..."
   }
 ]
 ```
 
-### 2. JWT Token Generation
+### Evaluation Results
+Format: `eval_results_YYYY-MM-DD_HH-MM-SS.json`
 
-The runner creates a JWT token matching your Go application's format:
+```json
+[
+  {
+    "query": "What is the weather?",
+    "reference": "Expected behavior...",
+    "response": "Agent response...",
+    "evaluations": [
+      {
+        "eval_name": "Hallucination",
+        "label": "factual",
+        "score": 1.0,
+        "explanation": "Response is supported by reference",
+        "metadata": {
+          "model_id": "anthropic.claude-sonnet-4-5-20250929-v1:0",
+          "template": "hallucination"
+        },
+        "timestamp": "2025-10-16T14:30:00.123456"
+      }
+    ]
+  }
+]
+```
+
+## 🔧 Adding New Evaluators
+
+### 1. Create Evaluator Class
+
+Create a new file in `evals/` directory (e.g., `evals/toxicity.py`):
 
 ```python
-token_payload = {
-    "user_id": "eval-runner",
-    "email": "eval-runner@bigfoot-golf.com",
-    "exp": int(time.time()) + 3600,
-    "iat": int(time.time())
+from typing import List
+from .base import BaseEvaluator, DatasetRecord, EvaluationResult
+
+class ToxicityEvaluator(BaseEvaluator):
+    """Evaluates responses for toxic or harmful content"""
+
+    def __init__(self, config):
+        super().__init__(name="Toxicity", config=config)
+        # Initialize any models or resources
+
+    def evaluate(self, records: List[DatasetRecord]) -> List[DatasetRecord]:
+        """Implement your evaluation logic"""
+        for record in records:
+            # Your evaluation logic here
+            result = EvaluationResult(
+                eval_name=self.name,
+                label="safe",  # or "toxic"
+                score=1.0,
+                explanation="Response contains no toxic content"
+            )
+            record.add_eval_result(result)
+        return records
+```
+
+### 2. Register Evaluator
+
+Add to `main_refactored.py`:
+
+```python
+from evals.toxicity import ToxicityEvaluator
+
+AVAILABLE_EVALUATORS = {
+    "hallucination": HallucinationEvaluator,
+    "relevance": RelevanceEvaluator,
+    "toxicity": ToxicityEvaluator,  # Add your evaluator
 }
-token = jwt.encode(token_payload, jwt_secret, algorithm="HS256")
 ```
 
-### 3. Hallucination Evaluation
+### 3. Run Your Evaluator
 
-Uses Phoenix's hallucination template to compare:
-- **Input**: User query
-- **Reference**: Expected behavior/facts
-- **Output**: Agent's actual response
+```bash
+python main_refactored.py --evals toxicity
+```
 
-Results in classification:
-- `factual` (score: 1.0) - Response supported by reference
-- `hallucinated` (score: 0.0) - Response contains unsupported info
+## 📝 Evaluator Lifecycle Hooks
 
-### 4. Bedrock Model Configuration
-
-The evaluation uses AWS Bedrock with Claude Sonnet 4.5:
+The `BaseEvaluator` provides lifecycle hooks:
 
 ```python
-model = BedrockModel(
-    model_id="anthropic.claude-sonnet-4-5-20250929-v1:0",
-    client=bedrock_client,
-    temperature=0.0
-)
+class MyEvaluator(BaseEvaluator):
+    def pre_evaluate(self, records):
+        """Called before evaluation - use for filtering/preprocessing"""
+        return records
+
+    def evaluate(self, records):
+        """Main evaluation logic - REQUIRED"""
+        return records
+
+    def post_evaluate(self, records):
+        """Called after evaluation - use for cleanup/logging"""
+        return records
 ```
 
-## Prerequisites
+## 🔍 Available Evaluators
 
-Before running the evaluation:
-
-1. **Golf App Server Running**: `cd /workspaces/golf_app && MODE=dev go run web/main.go`
-2. **Neo4j Running**: `docker-compose up -d neo4j`
-3. **AWS Credentials Configured**: Set AWS environment variables or use `~/.aws/credentials`
-4. **Phoenix Running** (optional): For results logging
-
-## Troubleshooting
-
-### Authentication Errors
-
-If you get 401/403 errors, verify:
+### Hallucination Evaluator
 ```bash
-echo $JWT_SECRET  # Should match your Go app's JWT_SECRET
+python main_refactored.py --evals hallucination
 ```
 
-### AWS Bedrock Errors
+Detects factually incorrect information not supported by reference text.
+- Labels: `factual`, `hallucinated`
+- Uses: Phoenix + AWS Bedrock
+- Template: Compares response against reference
 
-Ensure you have:
-- Valid AWS credentials with Bedrock access
-- Proper IAM permissions for `bedrock-runtime:InvokeModel`
-- Requested access to Claude models in your AWS region
-
-### Dataset Not Found
-
-Ensure the dataset exists:
+### Relevance Evaluator
 ```bash
-ls -la /workspaces/golf_app/pkg/prompts/datasets/golf_agent_dataframes.json
+python main_refactored.py --evals relevance
 ```
 
-## Integration with Other Tools
+Evaluates whether responses appropriately address the query.
+- Labels: `relevant`, `irrelevant`
+- Uses: Phoenix + AWS Bedrock
+- Template: Checks if answer addresses question
 
-This runner integrates with:
-- **Evaluation System** (`/pkg/prompts/evals/`) - Core eval logic
-- **A2A Agent** (`/pkg/prompts/agent/`) - Can be tested via this runner
-- **Dataset Generation** (`/pkg/prompts/datasets/`) - Source of test cases
-- **Phoenix Observability** - Results logging and tracking
-
-## Example Evaluation Output
+## 📈 Example Output
 
 ```
 ================================================================================
-RUNNING AGENT EVALUATION WITH PHOENIX
+GOLF AGENT EVALUATION RUNNER
 ================================================================================
+Run Timestamp: 2025-10-16_14-30-00
 
-[1/5] Loading dataset from golf_agent_dataframes.json...
-Loaded 3 test cases
+[1/5] Loading dataset...
+  Loaded 3 test cases from golf_agent_dataframes.json
 
-[2/5] Generating JWT token with user_id='eval-runner'...
-Generated JWT token for eval-runner
+[2/5] Generating JWT token...
+  Generated token for user: eval-runner
 
-[3/5] Making API calls to chat endpoint...
+[3/5] Calling chat API for queries...
   Query 1/3: What is the weather at the golf course over the weekend?
   Response: Based on the weather forecast...
 
-[4/5] Running hallucination evaluation with Phoenix + Bedrock...
-Initialized Bedrock model: anthropic.claude-sonnet-4-5-20250929-v1:0
-Evaluating 3 responses for hallucinations...
+[4/5] Preparing records for evaluation...
+  Prepared 3 records
 
-Evaluation Results:
-   label        score  explanation
-0  factual      1.0    Response correctly references weather API
-1  factual      1.0    Response provides appropriate tee time list
-2  factual      1.0    Response correctly limits to Bigfoot Golf Course
-
-[5/5] Logging results to Phoenix...
-Experiment logged to Phoenix: golf-agent-eval-1234567890
+[5/5] Running evaluators...
+  Evaluators to run: hallucination, relevance
 
 ================================================================================
-EVALUATION SUMMARY
+Running Hallucination Evaluator
 ================================================================================
-Total evaluations: 3
-Factual responses: 3
-Hallucinated responses: 0
-Average score: 1.00
+  Filtered to 3/3 valid records
+  Evaluating 3 responses for hallucinations...
+
+  Hallucination Summary:
+    Total evaluations: 3
+    Average score: 1.00
+    Label distribution:
+      - factual: 3 (100.0%)
+
+================================================================================
+Running Relevance Evaluator
+================================================================================
+  Filtered to 3/3 valid records
+  Evaluating 3 responses for relevance...
+
+  Relevance Summary:
+    Total evaluations: 3
+    Average score: 1.00
+    Label distribution:
+      - relevant: 3 (100.0%)
+
+  Saved evaluation results to: results/eval_results_2025-10-16_14-30-00.json
+
+================================================================================
+EVALUATION RUN SUMMARY
+================================================================================
+Run Timestamp: 2025-10-16_14-30-00
+Total Records: 3
+Evaluations Run: Hallucination, Relevance
+
+  Hallucination:
+    Average Score: 1.00
+    Label Distribution:
+      - factual: 3 (100.0%)
+
+  Relevance:
+    Average Score: 1.00
+    Label Distribution:
+      - relevant: 3 (100.0%)
+
+================================================================================
+EVALUATION COMPLETE
+================================================================================
 ```
+
+## 🧪 Testing Multiple Evaluators
+
+Run all evaluators in sequence:
+
+```bash
+python main_refactored.py --evals hallucination,relevance
+```
+
+Each evaluator:
+1. Receives the same `DatasetRecord` objects
+2. Adds its own `EvaluationResult` to each record
+3. Returns the records for the next evaluator
+4. Results accumulate in the `evaluations` array
+
+## 🗂️ File Organization
+
+### Old Structure (main.py)
+- Monolithic single file
+- Hard to extend
+- No dated outputs
+
+### New Structure (main_refactored.py)
+- Modular evaluator system
+- Easy to add new evaluators
+- Automatic dated outputs
+- Centralized configuration
+- Reusable utilities
+
+## 🔄 Migration Guide
+
+To migrate from old `main.py` to new structure:
+
+1. Update imports:
+   ```bash
+   # Old
+   python main.py
+
+   # New
+   python main_refactored.py
+   ```
+
+2. Results now in `results/` directory with timestamps
+
+3. Add custom evaluators in `evals/` directory
+
+4. Use CLI args to control which evaluators run
+
+## 🛠️ Troubleshooting
+
+### Import Errors
+
+Ensure you're in the runner directory:
+```bash
+cd /workspaces/golf_app/pkg/prompts/runner
+python main_refactored.py
+```
+
+### Configuration Errors
+
+Check environment variables:
+```bash
+python main_refactored.py  # Will show validation errors
+```
+
+### Evaluator Not Found
+
+List available evaluators:
+```bash
+python main_refactored.py --list-evals
+```
+
+## 📚 API Reference
+
+### DatasetRecord
+
+```python
+@dataclass
+class DatasetRecord:
+    query: str
+    reference: str
+    response: str
+    eval_results: List[EvaluationResult]
+
+    def add_eval_result(self, result: EvaluationResult)
+    def to_dict(self) -> Dict[str, Any]
+```
+
+### EvaluationResult
+
+```python
+@dataclass
+class EvaluationResult:
+    eval_name: str
+    label: str
+    score: float
+    explanation: Optional[str]
+    metadata: Dict[str, Any]
+    timestamp: str
+
+    def to_dict(self) -> Dict[str, Any]
+```
+
+### BaseEvaluator
+
+```python
+class BaseEvaluator(ABC):
+    def __init__(self, name: str, config: Any)
+    def evaluate(self, records: List[DatasetRecord]) -> List[DatasetRecord]
+    def pre_evaluate(self, records: List[DatasetRecord]) -> List[DatasetRecord]
+    def post_evaluate(self, records: List[DatasetRecord]) -> List[DatasetRecord]
+    def run(self, records: List[DatasetRecord]) -> List[DatasetRecord]
+    def print_summary(self, records: List[DatasetRecord])
+```
+
+## 🎓 Best Practices
+
+1. **One Evaluator Per Concern**: Create separate evaluators for different aspects (hallucination, relevance, toxicity, etc.)
+
+2. **Use Pre/Post Hooks**: Implement `pre_evaluate()` for filtering, `post_evaluate()` for logging
+
+3. **Descriptive Names**: Use clear eval names and label values
+
+4. **Rich Explanations**: Provide detailed explanations in results
+
+5. **Metadata**: Store additional context in the metadata field
+
+6. **Error Handling**: Handle errors gracefully in evaluators
+
+## 🤝 Contributing
+
+To add a new evaluator:
+
+1. Create file in `evals/` directory
+2. Inherit from `BaseEvaluator`
+3. Implement `evaluate()` method
+4. Register in `AVAILABLE_EVALUATORS`
+5. Update this README with documentation
+
+## 📄 License
+
+Part of the Golf Booking Application

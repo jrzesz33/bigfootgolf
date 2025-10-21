@@ -1,47 +1,34 @@
 """
-Hallucination evaluator using Phoenix and AWS Bedrock
+Hallucination evaluator using LiteLLM with AWS Bedrock
 
 Detects whether agent responses contain factually incorrect information
 not supported by the reference text.
 """
-
+import os
 import boto3
-import pandas as pd
 from typing import List
-from phoenix.evals import BedrockModel, llm_classify
-
+import pandas as pd
+from phoenix.client import Client
+from phoenix.evals.utils import to_annotation_dataframe
+from phoenix.evals.metrics.hallucination import HallucinationEvaluator
+from phoenix.evals.llm import LLM
+# from phoenix.evals import (
+#     BedrockModel,
+#     HALLUCINATION_PROMPT_RAILS_MAP,
+#     HALLUCINATION_PROMPT_TEMPLATE,
+#     download_benchmark_dataset,
+#     llm_classify,
+# )
 from .base import BaseEvaluator, DatasetRecord, EvaluationResult
 
 
 class HallucinationEvaluator(BaseEvaluator):
     """
-    Evaluates agent responses for hallucinations using Phoenix + Bedrock
+    Evaluates agent responses for hallucinations using LiteLLM + Bedrock
 
-    Uses Phoenix's hallucination template to compare agent responses
+    Uses a custom hallucination template to compare agent responses
     against reference text and classify as "factual" or "hallucinated"
     """
-
-    HALLUCINATION_TEMPLATE = """
-You are comparing a reference text to a question and answer from an AI assistant.
-
-[BEGIN REFERENCE TEXT]
-{reference}
-[END REFERENCE TEXT]
-
-[BEGIN DATA]
-************
-[Question]: {input}
-************
-[AI Assistant Answer]: {output}
-[END DATA]
-
-Compare the AI assistant's answer to the reference text. Does the AI assistant's answer contain factually incorrect information or hallucinations that are not supported by the reference text?
-
-Your response must be a single word, either "factual" or "hallucinated".
-
-factual - The answer is supported by the reference text
-hallucinated - The answer contains information not supported by the reference text
-"""
 
     def __init__(self, config):
         """
@@ -51,32 +38,34 @@ hallucinated - The answer contains information not supported by the reference te
             config: EvalRunnerConfig with AWS and other settings
         """
         super().__init__(name="Hallucination", config=config)
-        self.model = None
+        self._setup_aws_env()
 
-    def _initialize_model(self):
-        """Initialize Bedrock model (lazy initialization)"""
-        if self.model is not None:
-            return
-
-        print(f"Initializing Bedrock model: {self.config.aws.model_id}...")
-
-        # Create boto3 session
-        session_kwargs = {"region_name": self.config.aws.region}
-        if self.config.aws.access_key_id and self.config.aws.secret_access_key:
-            session_kwargs["aws_access_key_id"] = self.config.aws.access_key_id
-            session_kwargs["aws_secret_access_key"] = self.config.aws.secret_access_key
-
-        session = boto3.Session(**session_kwargs)
-        bedrock_client = session.client("bedrock-runtime")
-
-        # Initialize Phoenix Bedrock model
-        self.model = BedrockModel(
-            model_id=self.config.aws.model_id,
-            client=bedrock_client,
-            temperature=0.0
+    def _setup_aws_env(self):
+        """Setup AWS environment variables for LiteLLM"""
+        self.config.aws.region = "us-east-1"
+        self.config.aws.aws_session = os.getenv("AWS_BEARER_TOKEN_BEDROCK")
+        self.config.aws.model_id = "us.amazon.nova-pro-v1:0"
+        print(f"  Model: {self.config.aws}")
+        #create the session
+        session = boto3.Session(
+            aws_session_token=self.config.aws.aws_session,
+            region_name=self.config.aws.region
         )
-
-        print(f"Model initialized successfully")
+        # create the model
+        bedrock_client = session.client("bedrock-runtime")
+        # self.eval_model = BedrockModel(
+        #     model_id="us.amazon.nova-pro-v1:0",
+        #     client=bedrock_client,
+        #     temperature=0.0
+        # )
+        self.llm = LLM(
+            provider="openai",
+            model="us.amazon.nova-pro-v1:0",
+            #api_key=self.config.aws.aws_session,
+            client="openai",
+            base_url="http://localhost:3002",
+            #aws_session_token=self.config.aws.aws_session,
+        )
 
     def pre_evaluate(self, records: List[DatasetRecord]) -> List[DatasetRecord]:
         """Filter out records without responses"""
@@ -90,6 +79,8 @@ hallucinated - The answer contains information not supported by the reference te
         print(f"  Filtered to {len(valid_records)}/{len(records)} valid records")
         return valid_records
 
+
+
     def evaluate(self, records: List[DatasetRecord]) -> List[DatasetRecord]:
         """
         Evaluate records for hallucinations
@@ -100,52 +91,40 @@ hallucinated - The answer contains information not supported by the reference te
         Returns:
             Same list with evaluation results added
         """
+
         if not records:
             print("  No records to evaluate")
             return records
 
-        # Initialize model
-        self._initialize_model()
+        print(f"  Evaluating {len(records)} responses for hallucinations...")
 
-        # Prepare DataFrame for Phoenix evaluation
-        eval_data = []
-        for record in records:
-            eval_data.append({
+        for i, record in enumerate(records):
+            print(f"\n  Evaluating {i+1}/{len(records)}: {record.query[:50]}...")
+
+            # Format prompt with record data
+            eval_input = {
                 "input": record.query,
-                "reference": record.reference,
-                "output": record.response
-            })
+                "context": record.reference,
+                "output": record.response,
+            }
 
-        df = pd.DataFrame(eval_data)
+            # df = pd.DataFrame(eval_input)
+            # rails = list(HALLUCINATION_PROMPT_RAILS_MAP.values())
+            # scores = llm_classify(
+            #     dataframe=df, 
+            #     template=HALLUCINATION_PROMPT_TEMPLATE, 
+            #     model=self.eval_model, 
+            #     rails=rails,
+            #     provide_explanation=True, #optional to generate explanations for the value produced by the eval LLM
+            # )
 
-        # Run Phoenix evaluation
-        print(f"  Evaluating {len(df)} responses for hallucinations...")
+            hallucination_eval = HallucinationEvaluator(self.llm)
+            scores = hallucination_eval.evaluate(eval_input)
 
-        eval_results = llm_classify(
-            dataframe=df,
-            model=self.model,
-            template=self.HALLUCINATION_TEMPLATE,
-            rails=["factual", "hallucinated"],
-            provide_explanation=True
-        )
-
-        print("\n  Evaluation Results:")
-        print(eval_results[["label", "score", "explanation"]])
-
-        # Add results to records
-        for i, (idx, result) in enumerate(eval_results.iterrows()):
-            if i < len(records):
-                eval_result = EvaluationResult(
-                    eval_name=self.name,
-                    label=result["label"],
-                    score=float(result["score"]),
-                    explanation=result.get("explanation", ""),
-                    metadata={
-                        "model_id": self.config.aws.model_id,
-                        "template": "hallucination"
-                    }
-                )
-                records[i].add_eval_result(eval_result)
+            hallucination_annotations = to_annotation_dataframe(scores)
+            
+            client = Client(base_url="http://localhost:6006")
+            client.spans.log_span_annotations_dataframe(dataframe=hallucination_annotations)
 
         return records
 

@@ -9,7 +9,7 @@ WORKDIR /app
 COPY config.yaml /app/config.yaml
 
 # Expose ports defined in config (3000 and 3001)
-EXPOSE 3000 3001 15000
+EXPOSE 3000 3001 3002 15000
 
 # Run agentgateway with the config file
 ENTRYPOINT ["/app/agentgateway"]

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bigfoot/golf/common/models/db"
+	"bigfoot/golf/mcp/mcp"
 	"context"
 	"fmt"
 	"log"
@@ -36,7 +37,7 @@ func main() {
 	}
 
 	// Create new MCP server
-	mcpServer := NewMCPServer()
+	mcpServer := mcp.NewMCPServer()
 
 	// Create StreamableHTTP server with stateful sessions
 	streamableServer := server.NewStreamableHTTPServer(

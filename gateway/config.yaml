@@ -1,15 +1,23 @@
 config:
   tracing:
     otlpEndpoint: http://arizeai:4317
-    randomSampling: false
+    randomSampling: 1.0
     fields:
-      add: {}
+      add:
+        span.name: '"openai.chat"'
+        openinference.span.kind: '"LLM"'
+        llm.system: 'llm.provider'
+        llm.input_messages: 'flatten_recursive(llm.prompt.map(c, {"message": c}))'
+        llm.output_messages: 'flatten_recursive(llm.completion.map(c, {"role":"assistant", "content": c}))'
+        llm.token_count.completion: 'llm.outputTokens'
+        llm.token_count.prompt: 'llm.inputTokens'
+        llm.token_count.total: 'llm.totalTokens'
 binds:
 - port: 3000
   listeners:
   - protocol: HTTP
     name: bigfootmcp
-    hostname: ${GWAY_HOST}
+    hostname: agentgateway
     routes:
     - policies:
         cors:
@@ -17,6 +25,11 @@ binds:
           - "*"
           allowHeaders:
           - "*"
+        #requestHeaderModifier:
+        #  add:
+        #    content-type: application/json
+        #    accept: application/json, text/event-stream
+        #    mcp-protocol-version: 2025-06-18
       backends:
       - mcp:
           targets:
